@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BS Biology Faculty Scheduling System — Natural Science Department</title>
+  <!-- ExcelJS: loaded from the local copy first (works offline); falls back to the CDN when the file is missing. -->
+  <script src="exceljs.min.js"></script>
+  <style id="pageStyle">@page { size: letter landscape; margin: 7mm; }</style>
+  <style>
+    :root {
+      --navy: #0b2545; --navy-2: #13315c; --navy-3: #1d4174; --gold: #c9a227; --gold-soft: #f6edcf;
+      --bg: #f3f5f9; --card: #ffffff; --line: #dde3ec; --text: #1c2533; --muted: #5b6678;
+      --danger: #b42318; --danger-bg: #fdecea; --ok: #1e7b4a; --ok-bg: #e6f4ec; --warn-bg: #fff7e0;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: var(--text); background: var(--bg); font-size: 14px; line-height: 1.45; }
+    [hidden] { display: none !important; }
+    button { font: inherit; cursor: pointer; }
+    input, select { font: inherit; }
+
+    /* ---------- Login ---------- */
+    .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, var(--navy) 0%, var(--navy-3) 100%); padding: 20px; }
+    .login-card { background: #fff; width: 100%; max-width: 400px; border-radius: 12px; padding: 32px 30px; box-shadow: 0 20px 50px rgba(0,0,0,.25); border-top: 5px solid var(--gold); }
+    .login-card h1 { font-size: 20px; margin: 0 0 4px; color: var(--navy); }
+    .login-card p.sub { margin: 0 0 22px; color: var(--muted); font-size: 13px; }
+    .login-error { color: var(--danger); font-size: 13px; min-height: 18px; margin-top: 8px; }
+
+    /* ---------- Shell ---------- */
+    .app-shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+    .sidebar { background: var(--navy); color: #dfe7f3; padding: 18px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .brand { padding: 0 18px 16px; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 10px; }
+    .brand .b1 { color: #fff; font-weight: 700; font-size: 15px; line-height: 1.25; }
+    .brand .b2 { color: var(--gold); font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; margin-top: 4px; }
+    .nav button { display: flex; width: 100%; align-items: center; gap: 10px; background: none; border: 0; color: inherit; text-align: left; padding: 9px 18px; font-size: 13.5px; border-left: 3px solid transparent; }
+    .nav button .k { width: 20px; height: 20px; flex: none; border-radius: 4px; background: rgba(255,255,255,.08); font-size: 11px; display: grid; place-items: center; font-weight: 700; }
+    .nav button:hover { background: rgba(255,255,255,.06); }
+    .nav button.active { background: var(--navy-2); color: #fff; border-left-color: var(--gold); }
+    .nav button.active .k { background: var(--gold); color: var(--navy); }
+    .nav .badge { margin-left: auto; background: var(--danger); color: #fff; border-radius: 10px; font-size: 11px; padding: 0 7px; }
+    .main { min-width: 0; }
+    .topbar { display: flex; align-items: center; gap: 16px; background: #fff; border-bottom: 1px solid var(--line); padding: 14px 26px; position: sticky; top: 0; z-index: 5; }
+    .topbar h2 { margin: 0; font-size: 19px; color: var(--navy); }
+    .topbar .crumb { color: var(--muted); font-size: 12px; }
+    .topbar .spacer { flex: 1; }
+    .topbar .clock { color: var(--muted); font-size: 12.5px; text-align: right; }
+    .save-state { font-size: 12px; color: var(--ok); }
+    .view { display: none; padding: 22px 26px 40px; }
+    .view.active { display: block; }
+
+    /* ---------- Generic components ---------- */
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 18px; }
+    .panel h3 { margin: 0 0 14px; font-size: 15px; color: var(--navy); display: flex; align-items: center; gap: 10px; }
+    .panel h3 small { font-weight: 400; color: var(--muted); font-size: 12.5px; }
+    .muted { color: var(--muted); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px 16px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .field label, label.lbl { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .03em; }
+    .field .req { color: var(--danger); }
+    input[type=text], input[type=password], input[type=search], select { width: 100%; padding: 8px 10px; border: 1px solid #c9d2df; border-radius: 6px; background: #fff; color: var(--text); min-height: 36px; }
+    input:focus, select:focus { outline: 2px solid rgba(201,162,39,.55); border-color: var(--gold); }
+    .with-add { display: flex; gap: 6px; }
+    .with-add select { flex: 1; min-width: 0; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid transparent; border-radius: 6px; padding: 8px 14px; font-weight: 600; font-size: 13px; transition: background .15s; white-space: nowrap; }
+    .btn-primary { background: var(--navy); color: #fff; }
+    .btn-primary:hover { background: var(--navy-3); }
+    .btn-gold { background: var(--gold); color: var(--navy); }
+    .btn-gold:hover { background: #b38f1f; }
+    .btn-outline { background: #fff; border-color: #c9d2df; color: var(--navy); }
+    .btn-outline:hover { background: #f1f4f9; }
+    .btn-danger { background: #fff; color: var(--danger); border-color: #f0c2bd; }
+    .btn-danger:hover { background: var(--danger-bg); }
+    .btn-sm { padding: 4px 9px; font-size: 12px; }
+    .btn-add { padding: 0 10px; background: var(--gold-soft); border: 1px solid #e6d6a2; color: #6b5310; font-weight: 700; }
+    .btn-block { width: 100%; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .alert { border-radius: 6px; padding: 10px 14px; margin-top: 14px; font-size: 13px; }
+    .alert ul { margin: 6px 0 0; padding-left: 18px; }
+    .alert-danger { background: var(--danger-bg); color: #7a1a12; border: 1px solid #f3c1bb; }
+    .alert-warn { background: var(--warn-bg); color: #6b5310; border: 1px solid #ecd9a0; }
+    .alert-ok { background: var(--ok-bg); color: #165c37; border: 1px solid #b8e0c8; }
+    .edit-banner { background: var(--gold-soft); border: 1px solid #e6d6a2; color: #6b5310; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
+
+    table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.data th { background: var(--navy); color: #fff; font-weight: 600; text-align: left; padding: 8px 10px; position: sticky; top: 0; font-size: 12px; }
+    table.data td { border-bottom: 1px solid var(--line); padding: 7px 10px; vertical-align: top; }
+    table.data tr:hover td { background: #f8fafc; }
+    table.data tr.conflict td { background: #fff4f3; }
+    table.data tr.editing td { background: var(--gold-soft); }
+    table.data tr.day-row td { background: #e9eef6; font-weight: 700; color: var(--navy); }
+    table.data td.num, table.data th.num { text-align: right; }
+    .table-wrap { overflow: auto; max-height: 560px; border: 1px solid var(--line); border-radius: 6px; }
+    .empty { padding: 26px; text-align: center; color: var(--muted); }
+    .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 10px; background: #e9eef6; color: var(--navy-2); }
+    .tag-danger { background: var(--danger-bg); color: var(--danger); }
+    .filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px; margin-bottom: 14px; align-items: end; }
+    .filters > .field:first-child { grid-column: span 2; }
+    table.data a, .panel a { color: var(--navy-3); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+    .toolbar .field { min-width: 180px; flex: 1; }
+    .toolbar .field.wide { flex: 2; min-width: 240px; }
+    .count-note { font-size: 12px; color: var(--muted); margin: -4px 0 8px; }
+
+    /* Dashboard */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; border-top: 3px solid var(--navy); }
+    .card .v { font-size: 26px; font-weight: 700; color: var(--navy); line-height: 1.1; }
+    .card .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 4px; }
+    .card.gold { border-top-color: var(--gold); }
+    .card.bad { border-top-color: var(--danger); }
+    .card.bad .v { color: var(--danger); }
+    .conflict-item { border: 1px solid #f3c1bb; background: #fffafa; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; font-size: 12.5px; }
+    .conflict-item b { color: var(--danger); }
+
+    /* Toasts */
+    #toasts { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 50; max-width: 380px; }
+    .toast { background: var(--navy); color: #fff; padding: 10px 14px; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.2); font-size: 13px; border-left: 4px solid var(--gold); }
+    .toast.error { background: #7a1a12; border-left-color: #ffb4a9; }
+    .toast.success { background: #165c37; border-left-color: #9fe0bb; }
+
+    /* ---------- Official Faculty Schedule sheet (PSU template) ---------- */
+    .tt-sheet { --slot-h: 25px; background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; width: 100%; max-width: 1060px; margin: 0 auto 24px; padding: 14px; border: 1px solid var(--line); box-shadow: 0 2px 10px rgba(0,0,0,.05); position: relative; }
+    .tt-sheet table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .tt-sheet td, .tt-sheet th { border: 1px solid #000; }
+    .tt-date { position: absolute; right: 16px; top: 2px; font-size: 8px; font-style: italic; }
+    .tt-head td { height: 62px; }
+    .tt-head .tt-logo { text-align: center; vertical-align: middle; border-width: 2px; }
+    .tt-head .tt-title { text-align: center; vertical-align: middle; border-width: 2px; }
+    .tt-logo img { max-height: 54px; max-width: 90%; display: inline-block; }
+    .logo-ph { width: 54px; height: 54px; border: 1.5px dashed #6b7a90; border-radius: 50%; display: inline-grid; place-items: center; font-size: 8px; color: #6b7a90; line-height: 1.1; text-align: center; }
+    .tt-title .t1 { font-size: 17px; font-weight: 700; letter-spacing: .02em; }
+    .tt-title .t2 { font-size: 8.5px; font-weight: 700; margin-top: 2px; letter-spacing: .03em; }
+    .tt-term, .tt-name { text-align: center; font-size: 10px; font-weight: 700; padding: 3px 0 1px; }
+    .tt-name { padding-bottom: 4px; }
+    .tt-sheet .u { text-decoration: underline; padding: 0 4px; }
+    .tt-grid thead th { font-size: 10px; font-weight: 700; padding: 6px 2px; border-top-width: 2px; border-bottom-width: 2px; background: #fff; }
+    .tt-grid tbody td { height: var(--slot-h); padding: 0; font-size: 9.5px; }
+    .tt-grid td.time { text-align: center; font-weight: 700; font-size: 9.5px; white-space: nowrap; }
+    .tt-grid tbody tr.hr-end > td { border-bottom-width: 2px; }
+    .tt-grid tbody tr:last-child > td { border-bottom-width: 2px; }
+    .tt-grid th:first-child, .tt-grid td.time { border-left-width: 2px; border-right-width: 2px; }
+    .tt-grid th:last-child, .tt-grid td.last { border-right-width: 2px; }
+    .tt-grid td.cls-cell { background: #eaf0f8; vertical-align: middle; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .tt-grid td.cls-cell.clickable { cursor: pointer; }
+    .tt-grid td.cls-cell.clickable:hover { background: #dbe6f4; }
+    .cls { height: calc(var(--slot-h) * var(--span) - 2px); overflow: hidden; display: flex; flex-direction: column; justify-content: center; padding: 1px 3px; line-height: 1.15; overflow-wrap: anywhere; }
+    .cls .s { font-weight: 700; font-size: 9px; }
+    .cls .b, .cls .r { font-size: 8.5px; }
+    .cls .r { font-style: italic; }
+    .cls .c { font-weight: 700; font-size: 8px; letter-spacing: .02em; }
+    .cls.short .c { font-size: 6.5px; }
+    .cls.short .s { font-size: 7.5px; } .cls.short .b, .cls.short .r { font-size: 7px; }
+    .tt-sign { margin-top: 8px; }
+    .tt-sign td { border-width: 0 2px; padding: 2px 6px; font-size: 8.5px; }
+    .tt-sign tr:first-child td { border-top-width: 2px; border-bottom-width: 1px; font-weight: 700; height: 16px; }
+    .tt-sign tr.space td { height: 22px; }
+    .tt-sign tr.nm td { text-align: center; font-weight: 700; text-decoration: underline; text-transform: uppercase; font-style: italic; }
+    .tt-sign tr.ds td { text-align: center; font-style: italic; text-decoration: underline; border-bottom-width: 2px; padding-bottom: 4px; font-size: 8px; }
+    .tt-sign .conf { text-decoration: underline; font-style: italic; }
+    .print-only { display: none; }
+    #printAll { display: none; }
+
+    .settings-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px 16px; }
+    .logo-preview { display: flex; align-items: center; gap: 14px; }
+    .logo-preview img { max-height: 64px; border: 1px solid var(--line); border-radius: 6px; padding: 4px; background: #fff; }
+    .help { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    code { background: #eef1f6; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
+    @media (max-width: 1100px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .settings-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 860px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; padding: 10px 0; }
+      .nav { display: flex; overflow-x: auto; }
+      .nav button { white-space: nowrap; border-left: 0; border-bottom: 3px solid transparent; padding: 8px 12px; }
+      .nav button.active { border-bottom-color: var(--gold); }
+      .brand { border-bottom: 0; padding-bottom: 6px; margin-bottom: 0; }
+      .form-grid, .settings-grid { grid-template-columns: 1fr; }
+      .topbar { position: static; flex-wrap: wrap; padding: 12px 16px; }
+      .view { padding: 16px; }
+    }
+
+    /* ---------- Print ---------- */
+    @media print {
+      body { background: #fff; }
+      .no-print, .sidebar, .topbar, #toasts, #loginScreen { display: none !important; }
+      .app-shell { display: block; }
+      .view { padding: 0 !important; }
+      body[data-print="sheet"] .view:not(#view-timetable) { display: none !important; }
+      body[data-print="master"] .view:not(#view-master) { display: none !important; }
+      body[data-print="all"] .app-shell { display: none !important; }
+      body[data-print="all"] #printAll { display: block !important; }
+      .print-only { display: block !important; }
+      .tt-sheet { --slot-h: 0.225in; box-shadow: none; border: 0; padding: 0; margin: 0; max-width: none; width: 100%; break-inside: avoid; page-break-inside: avoid; }
+      .tt-sheet + .tt-sheet { break-before: page; page-break-before: always; }
+      .tt-head td { height: 0.62in; }
+      .panel { border: 0; padding: 0; }
+      .table-wrap { max-height: none; overflow: visible; border: 0; }
+      table.data th { background: #fff !important; color: #000; border: 1px solid #000; position: static; }
+      table.data td { border: 1px solid #000; padding: 3px 6px; font-size: 10px; }
+      table.data tr.day-row td { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      table.data tr { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= LOGIN ================= -->
+  <div id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-card" autocomplete="off">
+      <h1>BS Biology Faculty Scheduling System</h1>
+      <p class="sub">College of Arts, Sciences and Letters · Natural Science Department</p>
+      <div class="field"><label for="username">Username</label><input type="text" id="username" autocomplete="username" /></div>
+      <div class="field" style="margin-top:12px"><label for="password">Password</label><input type="password" id="password" autocomplete="current-password" /></div>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:18px; padding:10px">Sign in</button>
+      <div class="login-error" id="loginError" role="alert"></div>
+    </form>
+  </div>
+
+  <!-- ================= APP ================= -->
+  <div id="app" class="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="b1">BS Biology Program Scheduler</div>
+        <div class="b2">Natural Science Department</div>
+      </div>
+      <nav class="nav" id="nav"></nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="crumb">Faculty Scheduling System</div>
+          <h2 id="viewTitle">Dashboard</h2>
+        </div>
+        <div class="spacer"></div>
+        <div class="clock"><div id="dateTimeDisplay"></div><div class="save-state" id="saveState"></div></div>
+        <button class="btn btn-outline btn-sm" id="logoutBtn" type="button">Sign out</button>
+      </header>
+
+      <!-- A. DASHBOARD -->
+      <section class="view" id="view-dashboard">
+        <div class="toolbar" style="margin-bottom:14px">
+          <div class="field" style="max-width:320px"><label for="dashTerm">Term</label><select id="dashTerm"></select></div>
+        </div>
+        <div class="cards" id="dashCards"></div>
+        <div class="grid-2">
+          <div class="panel"><h3>Faculty Teaching Load <small id="dashLoadNote"></small></h3><div class="table-wrap" id="dashLoad"></div></div>
+          <div class="panel"><h3>Scheduling Conflicts</h3><div id="dashConflicts"></div></div>
+        </div>
+      </section>
+
+      <!-- B. SCHEDULE ENTRY -->
+      <section class="view" id="view-entry">
+        <form id="scheduleForm" class="panel" novalidate>
+          <h3 id="formTitle">Add Schedule</h3>
+          <div class="edit-banner" id="editBanner" hidden></div>
+          <div class="form-grid">
+            <div class="field"><label for="fSemester">Semester <span class="req">*</span></label><select id="fSemester"></select></div>
+            <div class="field"><label for="fAY">Academic Year <span class="req">*</span></label><input type="text" id="fAY" placeholder="e.g., 2024-2025" /></div>
+            <div class="field"><label for="fCategory">Subject Category <span class="req">*</span></label><select id="fCategory"></select></div>
+            <div class="field"><label for="fSubject">Subject <span class="req">*</span></label><div class="with-add"><select id="fSubject"></select><button type="button" class="btn btn-add" data-quickadd="subject" title="Add a new subject to this semester and category">+ Add</button></div></div>
+            <div class="field"><label for="fFaculty">Faculty Name <span class="req">*</span></label><div class="with-add"><select id="fFaculty"></select><button type="button" class="btn btn-add" data-quickadd="faculties" title="Add faculty">+ Add</button></div></div>
+            <div class="field"><label for="fClassroom">Classroom <span class="req">*</span></label><div class="with-add"><select id="fClassroom"></select><button type="button" class="btn btn-add" data-quickadd="classrooms" title="Add classroom">+ Add</button></div></div>
+            <div class="field"><label for="fBlock">Block/Section <span class="req">*</span></label><div class="with-add"><select id="fBlock"></select><button type="button" class="btn btn-add" data-quickadd="blocks" title="Add block/section">+ Add</button></div></div>
+            <div class="field"><label for="fDay">Day <span class="req">*</span></label><select id="fDay"></select></div>
+            <div class="field"><label for="fStart">Start Time <span class="req">*</span></label><select id="fStart"></select></div>
+            <div class="field"><label for="fEnd">End Time <span class="req">*</span></label><select id="fEnd"></select></div>
+          </div>
+          <div id="formMsg" hidden></div>
+          <div class="actions">
+            <button type="submit" class="btn btn-primary" id="submitBtn">Add Schedule</button>
+            <button type="button" class="btn btn-outline" id="cancelEditBtn" hidden>Cancel Edit</button>
+            <button type="button" class="btn btn-outline" id="clearFormBtn">Clear Day &amp; Time</button>
+          </div>
+        </form>
+
+        <div class="panel">
+          <h3>Schedule Records</h3>
+          <div class="filters" id="entryFilters"></div>
+          <div class="count-note" id="entryCount"></div>
+          <div class="table-wrap" id="entryTable"></div>
+        </div>
+      </section>
+
+      <!-- C. FACULTY TIMETABLES -->
+      <section class="view" id="view-timetable">
+        <div class="panel no-print">
+          <div class="toolbar">
+            <div class="field wide"><label for="ttFaculty">Faculty</label><select id="ttFaculty"></select></div>
+            <div class="field"><label for="ttSemester">Semester</label><select id="ttSemester"></select></div>
+            <div class="field"><label for="ttAY">Academic Year</label><select id="ttAY"></select></div>
+            <button class="btn btn-primary" type="button" id="ttPrintBtn">Print / Save as PDF</button>
+            <button class="btn btn-gold" type="button" id="ttExcelBtn">Export to Excel (.xlsx)</button>
+          </div>
+          <div class="help" id="ttSummary"></div>
+          <div id="ttWarn"></div>
+        </div>
+        <div id="ttHolder"></div>
+      </section>
+
+      <!-- D. MASTER CLASS SCHEDULE -->
+      <section class="view" id="view-master">
+        <div class="panel no-print">
+          <div class="filters" id="masterFilters"></div>
+          <div class="actions" style="margin-top:4px">
+            <button class="btn btn-primary" type="button" id="masterPrintBtn">Print / Save as PDF</button>
+            <button class="btn btn-gold" type="button" id="masterExcelBtn">Export to Excel (.xlsx)</button>
+            <button class="btn btn-outline" type="button" id="masterCsvBtn">Export CSV</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="print-only" id="masterPrintHead"></div>
+          <h3 class="no-print">Departmental Class Schedule <small id="masterCount"></small></h3>
+          <div class="table-wrap" id="masterHolder"></div>
+        </div>
+      </section>
+
+      <!-- E–H. MANAGEMENT -->
+      <section class="view" id="view-faculty"></section>
+      <section class="view" id="view-subjects"></section>
+      <section class="view" id="view-classrooms"></section>
+      <section class="view" id="view-blocks"></section>
+
+      <!-- I. REPORTS & EXPORT -->
+      <section class="view" id="view-reports">
+        <div class="panel">
+          <h3>Term to export</h3>
+          <div class="toolbar">
+            <div class="field"><label for="rpSemester">Semester</label><select id="rpSemester"></select></div>
+            <div class="field"><label for="rpAY">Academic Year</label><select id="rpAY"></select></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="panel">
+            <h3>1. Individual Faculty Schedule</h3>
+            <div class="field"><label for="rpFaculty">Faculty</label><select id="rpFaculty"></select></div>
+            <div class="actions">
+              <button class="btn btn-gold" type="button" id="rpOneExcel">Export to Excel</button>
+              <button class="btn btn-primary" type="button" id="rpOnePrint">Print / Save as PDF</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>2. All Faculty Schedules</h3>
+            <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="rpIncludeEmpty" /> Include faculty with no classes (blank forms)</label>
+            <p class="help">Excel: one worksheet per faculty in a single workbook. PDF: one page per faculty.</p>
+            <div class="actions">
+              <button class="btn btn-gold" type="button" id="rpAllExcel">Export All to Excel</button>
+              <button class="btn btn-primary" type="button" id="rpAllPrint">Print / Save All as PDF</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>3. Master Class Schedule</h3>
+          <p class="help" style="margin-top:0">Exports every class in the selected term, sorted by day and time, with a Teaching Load summary sheet. To export a filtered subset, use the buttons in <b>Master Class Schedule</b>.</p>
+          <div class="actions">
+            <button class="btn btn-gold" type="button" id="rpMasterExcel">Export Master Schedule to Excel</button>
+            <button class="btn btn-outline" type="button" id="rpMasterCsv">Export Master Schedule to CSV</button>
+          </div>
+        </div>
+        <form class="panel" id="settingsForm">
+          <h3>Faculty Schedule Form Settings <small>printed on every timetable and Excel export</small></h3>
+          <div class="settings-grid">
+            <div class="field"><label for="sUniversity">University</label><input type="text" id="sUniversity" /></div>
+            <div class="field"><label for="sTitle">Form title</label><input type="text" id="sTitle" /></div>
+            <div class="field"><label for="sCampus">Campus</label><input type="text" id="sCampus" /></div>
+            <div class="field"><label for="sPrepName">Prepared by — name</label><input type="text" id="sPrepName" /></div>
+            <div class="field"><label for="sRecName">Recommending Approval — name</label><input type="text" id="sRecName" /></div>
+            <div class="field"><label for="sAppName">Approved — name</label><input type="text" id="sAppName" /></div>
+            <div class="field"><label for="sPrepDes">Prepared by — designation</label><input type="text" id="sPrepDes" /></div>
+            <div class="field"><label for="sRecDes">Recommending Approval — designation</label><input type="text" id="sRecDes" /></div>
+            <div class="field"><label for="sAppDes">Approved — designation</label><input type="text" id="sAppDes" /></div>
+            <div class="field"><label for="sConfDes">Conforme — designation</label><input type="text" id="sConfDes" /></div>
+            <div class="field"><label for="sPaper">Paper size (landscape)</label><select id="sPaper"><option value="letter">Letter / Short (8.5 × 11 in)</option><option value="a4">A4</option><option value="legal">Legal / Long (8.5 × 13–14 in)</option></select></div>
+          </div>
+          <div class="field" style="margin-top:14px">
+            <label>University logo</label>
+            <div class="logo-preview"><span id="logoPreview"></span>
+              <input type="file" id="logoFile" accept="image/png,image/jpeg" />
+              <button type="button" class="btn btn-danger btn-sm" id="logoRemove">Remove logo</button>
+            </div>
+            <div class="help">Upload the official PSU logo (PNG or JPG). Until then, a dashed “LOGO” placeholder is printed in its place.</div>
+          </div>
+          <div class="actions"><button class="btn btn-primary" type="submit">Save Settings</button></div>
+        </form>
+      </section>
+
+      <!-- J. BACKUP & RESTORE -->
+      <section class="view" id="view-backup">
+        <div class="grid-2">
+          <div class="panel">
+            <h3>Back up</h3>
+            <p class="help" style="margin-top:0">Downloads everything (schedules, faculty, subjects, classrooms, blocks and form settings) as one JSON file. Keep it in Google Drive or a USB drive.</p>
+            <div class="actions"><button class="btn btn-gold" type="button" id="backupBtn">Download JSON Backup</button></div>
+            <div id="storageInfo" class="help" style="margin-top:14px"></div>
+          </div>
+          <div class="panel">
+            <h3>Restore</h3>
+            <p class="help" style="margin-top:0">Restoring <b>replaces</b> the current data. A copy of the current data is kept automatically so you can undo the restore.</p>
+            <input type="file" id="restoreFile" accept="application/json,.json" />
+            <div id="restoreMsg"></div>
+            <div class="actions">
+              <button class="btn btn-outline" type="button" id="undoRestoreBtn">Undo Last Restore</button>
+              <button class="btn btn-danger" type="button" id="resetBtn">Reset to Default Data…</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="printAll"></div>
+  <div id="toasts" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   1. CONSTANTS & DEFAULT DATA  (original faculty / rooms / blocks / subjects preserved)
+   ===================================================================== */
+const USERS = [{ username: 'admin', password: 'biology123' }];
+const STORE_KEY = 'bsbio_v2_data';
+const LEGACY_APP_KEY = 'bsbio_appData';        // v1 keys — read for migration, never deleted
+const LEGACY_SCHEDULE_KEY = 'bsbio_schedule';
+const PRERESTORE_KEY = 'bsbio_v2_prerestore';
+const SKIPPED_KEY = 'bsbio_v2_unreadable_entries';
+const EXCELJS_CDN = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+
+const SEMESTERS = ['1st Semester', '2nd Semester', 'Summer'];
+const CATEGORIES = ['General Education', 'Biology Major'];
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_START = 7 * 60, DAY_END = 17 * 60, SLOT = 30;
+const NSLOTS = (DAY_END - DAY_START) / SLOT;   // 20 half-hour rows, 7:00 AM – 5:00 PM
+const PAPER_EXCEL = { letter: 1, legal: 5, a4: 9 };
+
+/* BS Biology curriculum (course code, title, semester, category, year level).
+   Subject names are stored as "CODE – Title"; the timetable shows the code and title on separate lines. */
+const CODE_SEP = ' – ';
+const CURRICULUM = [
+  // First Year – 1st Semester
+  ['1st Semester', 'General Education', 'LN01_GE5', 'The Contemporary World', 1],
+  ['1st Semester', 'General Education', 'LN01_GE6', 'Science, Technology and Society', 1],
+  ['1st Semester', 'General Education', 'LN01_GE7', 'Mathematics in the Modern World', 1],
+  ['1st Semester', 'General Education', 'LN01_PE1', 'Physical Activities towards Health and Fitness 1', 1],
+  ['1st Semester', 'General Education', 'LN21_NSTP1', 'Civic Welfare Training Service 1 / Reserved Officers Training Corps 1', 1],
+  ['1st Semester', 'Biology Major', 'LN21_FC101', 'General Botany', 1],
+  ['1st Semester', 'Biology Major', 'LN21_FC102', 'General Zoology', 1],
+  // First Year – 2nd Semester
+  ['2nd Semester', 'General Education', 'LN01_GE1', 'Understanding the Self', 1],
+  ['2nd Semester', 'General Education', 'LN01_GE2', 'Readings in Philippine History', 1],
+  ['2nd Semester', 'General Education', 'LN01_GE3', 'Art Appreciation', 1],
+  ['2nd Semester', 'General Education', 'LN01_PE2', 'Physical Activities towards Health and Fitness 2', 1],
+  ['2nd Semester', 'General Education', 'LN21_GEE3', 'Reading Visual Art', 1],
+  ['2nd Semester', 'General Education', 'NSTP 2', 'National Service Training Program II', 1],
+  ['2nd Semester', 'Biology Major', 'LN01_BTC101_BIO', 'Chemical Biology I (Organic Molecules)', 1],
+  ['2nd Semester', 'Biology Major', 'LN01_FC103_BIO', 'Systematics', 1],
+  // Second Year – 1st Semester
+  ['1st Semester', 'General Education', 'LN01_GE4', 'Purposive Communication', 2],
+  ['1st Semester', 'General Education', 'LN01_GEE1', 'Living in the IT Era', 2],
+  ['1st Semester', 'General Education', 'LN01_GEE4', 'Global Citizenship', 2],
+  ['1st Semester', 'General Education', 'LN01_PE3', 'Physical Activity Towards Health and Fitness 3', 2],
+  ['1st Semester', 'Biology Major', 'LN22_BTC102', 'Chemical Biology II (Analytical Methods for Biology)', 2],
+  ['1st Semester', 'Biology Major', 'LN22_FC104', 'Microbiology', 2],
+  ['1st Semester', 'Biology Major', 'LN22_FC105', 'General Ecology', 2],
+  // Second Year – 2nd Semester
+  ['2nd Semester', 'General Education', 'GE 9A', "Rizal's Life and Works", 2],
+  ['2nd Semester', 'General Education', 'LN01_PE4', 'Physical Activity Towards Health and Fitness 4', 2],
+  ['2nd Semester', 'Biology Major', 'LN_BTC103', 'Statistical Biology', 2],
+  ['2nd Semester', 'Biology Major', 'LN_BTC104', 'Chemical Biology III (Biomolecules)', 2],
+  ['2nd Semester', 'Biology Major', 'LN_FC106', 'Evolutionary Biology', 2],
+  ['2nd Semester', 'Biology Major', 'LN_FC107', 'Genetics', 2],
+  // Third Year – 1st Semester
+  ['1st Semester', 'General Education', 'LN01_IC1', 'Personality Development', 3],
+  ['1st Semester', 'Biology Major', 'LN_FC109', 'General Physiology', 3],
+  ['1st Semester', 'Biology Major', 'LN_FC108', 'Cell and Molecular Biology', 3],
+  ['1st Semester', 'Biology Major', 'LN_IC2', 'BioEntrepreneurship', 3],
+  ['1st Semester', 'Biology Major', 'LN_SC101', 'Survey, Mapping and Plant Geographic Information System', 3],
+  // Third Year – 2nd Semester
+  ['2nd Semester', 'General Education', 'LN01_GEE2', 'Gender and Society', 3],
+  ['2nd Semester', 'General Education', 'SC_GE8_ABM', 'Ethics', 3],
+  ['2nd Semester', 'Biology Major', 'LN_BTC105', 'Biophysics', 3],
+  ['2nd Semester', 'Biology Major', 'LN_FC110', 'Developmental Biology', 3],
+  ['2nd Semester', 'Biology Major', 'LN_SC102', 'Plant Physiology', 3],
+  ['2nd Semester', 'Biology Major', 'LN_UT101', 'Thesis Writing I', 3],
+  // Third Year – Summer
+  ['Summer', 'Biology Major', 'LN_OJT', 'On-the-Job Training', 3],
+  // Fourth Year – 1st Semester
+  ['1st Semester', 'Biology Major', 'LN_FEC101', 'Free Elective 1', 4],
+  ['1st Semester', 'Biology Major', 'LN_SC103', 'Plant Pathology', 4],
+  ['1st Semester', 'Biology Major', 'LN_SC104', 'Plant Ecology', 4],
+  ['1st Semester', 'Biology Major', 'LN_UT102', 'Thesis Writing II', 4],
+  // Fourth Year – 2nd Semester
+  ['2nd Semester', 'Biology Major', 'LN_FEC102', 'Free Elective 2', 4],
+  ['2nd Semester', 'Biology Major', 'LN_SC105', 'Plant Tissue Culture', 4],
+  ['2nd Semester', 'Biology Major', 'LN_SC106', 'Plant Taxonomy', 4],
+  ['2nd Semester', 'Biology Major', 'LN_UT103', 'Thesis Writing III', 4]
+];
+// Old (uncoded) titles that were worded differently in the previous version
+const OLD_TITLE_ALIASES = {
+  'civic welfare training service 1 / rotc 1 purposive communication': 'LN21_NSTP1',
+  'national service training program ii (cwts/rotc/lts ii)': 'NSTP 2',
+  'fc 107 genetics': 'LN_FC107'
+};
+const CURRICULUM_VERSION = 2;
+const codedName = c => c[2] + CODE_SEP + c[3];
+function curriculumSubjects() {
+  const out = {};
+  for (const sem of ['1st Semester', '2nd Semester', 'Summer']) { out[sem] = {}; for (const cat of ['General Education', 'Biology Major']) out[sem][cat] = []; }
+  for (const c of CURRICULUM) out[c[0]][c[1]].push(codedName(c));
+  return out;
+}
+/** Finds the curriculum entry for an old title, a coded name, or a bare course code. */
+function findCurriculum(name) {
+  const k = String(name || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (!k) return null;
+  const alias = OLD_TITLE_ALIASES[k];
+  return CURRICULUM.find(c => (alias && c[2] === alias) || c[3].toLowerCase() === k || codedName(c).toLowerCase() === k || c[2].toLowerCase() === k) || null;
+}
+/** Splits "CODE – Title" for display; subjects without a code return { code: '', title }. */
+function splitSubject(name) {
+  const i = String(name).indexOf(CODE_SEP);
+  return i > 0 ? { code: name.slice(0, i), title: name.slice(i + CODE_SEP.length) } : { code: '', title: String(name) };
+}
+
+const DEFAULT_LISTS = {
+  faculties: ["Mark Anthony M. Doria", "Sharlene Cherry S. De Guzman", "Jesamine F. Rebugio", "Weenalei T.Fajardo", "Alejandro Collado III", "Syril Jovi M. Carino", "Lina T. Cancino", "Girlie M. Fernandez", "Eleazar C. De Jesus", "Thomas Ponce C. Reyes"],
+  classrooms: ["Science Laboratory 1", "Science Laboratory 2", "Science Laboratory 3", "Science Laboratory 4", "Science Lecture 1", "Science Lecture 2", "Science Lecture 3", "Science Lecture 4"],
+  blocks: ["Block A", "Block B", "Block C"],
+  subjects: curriculumSubjects()
+};
+const DEFAULT_SETTINGS = {
+  university: 'PANGASINAN STATE UNIVERSITY',
+  formTitle: 'FACULTY SCHEDULE',
+  campus: 'LINGAYEN',
+  preparedBy: { name: 'SHARLENE CHERRY S. DE GUZMAN', designation: 'Department Chairperson' },
+  recommending: { name: 'JESAMINE F. REBUGIO', designation: 'College Dean' },
+  approved: { name: 'RENATO E. SALCEDO, PhD.', designation: 'Campus Executive Director' },
+  conformeDesignation: 'Faculty',
+  paper: 'letter',
+  logo: null,
+  lastAY: ''
+};
+
+const VIEWS = [
+  ['dashboard', 'A', 'Dashboard'], ['entry', 'B', 'Schedule Entry'], ['timetable', 'C', 'Faculty Timetables'],
+  ['master', 'D', 'Master Class Schedule'], ['faculty', 'E', 'Faculty Management'], ['subjects', 'F', 'Subject Management'],
+  ['classrooms', 'G', 'Classroom Management'], ['blocks', 'H', 'Block/Section Management'],
+  ['reports', 'I', 'Reports and Export'], ['backup', 'J', 'Backup and Restore']
+];
+
+let state = null;          // single source of truth: { version, lists, schedules, settings }
+let editingId = null;      // id of the schedule being edited (null = add mode)
+let storageAvailable = true;
+const startupNotices = [];
+
+/* =====================================================================
+   2. SMALL UTILITIES (safe DOM building — no untrusted innerHTML)
+   ===================================================================== */
+function h(tag, props, ...children) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') n.className = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(n.style, v);
+    else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v);
+    else if (k === 'dataset') Object.assign(n.dataset, v);
+    else if (k === 'rowSpan' || k === 'colSpan' || k === 'value' || k === 'checked' || k === 'htmlFor' || k === 'type' || k === 'title' || k === 'disabled') n[k] = v;
+    else n.setAttribute(k, v);
+  }
+  for (const c of children.flat(Infinity)) {
+    if (c == null || c === false) continue;
+    n.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  }
+  return n;
+}
+const $ = id => document.getElementById(id);
+const clean = v => (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim();
+const same = (a, b) => clean(a).toLowerCase() === clean(b).toLowerCase();
+const uniq = arr => { const seen = new Set(); return arr.filter(x => { const k = x.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }); };
+const uid = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const byText = (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
+
+function toMin(t) { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? (+m[1]) * 60 + (+m[2]) : NaN; }
+function toHHMM(min) { return String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0'); }
+function fmt12(min) { let hh = Math.floor(min / 60); const ap = hh >= 12 ? 'PM' : 'AM'; hh = hh % 12 || 12; return `${hh}:${String(min % 60).padStart(2, '0')} ${ap}`; }
+function fmtPlain(min) { const hh = Math.floor(min / 60) % 12 || 12; return `${hh}:${String(min % 60).padStart(2, '0')}`; }
+function timeRange(e) { return `${fmt12(toMin(e.startTime))} – ${fmt12(toMin(e.endTime))}`; }
+function hoursOf(e) { return (toMin(e.endTime) - toMin(e.startTime)) / 60; }
+function fmtHours(x) { return (Math.round(x * 100) / 100).toString(); }
+function normTime(t) {
+  const s = clean(t).toUpperCase();
+  let m = /^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/.exec(s);
+  if (!m) return '';
+  let hh = +m[1]; const mm = +m[2];
+  if (m[3] === 'PM' && hh < 12) hh += 12;
+  if (m[3] === 'AM' && hh === 12) hh = 0;
+  if (hh > 23 || mm > 59) return '';
+  return toHHMM(hh * 60 + mm);
+}
+function normAY(ay) {
+  const s = clean(ay);
+  const m = /^(\d{4})\s*[-–—/]\s*(\d{2}|\d{4})$/.exec(s);
+  if (!m) return s;
+  const y2 = m[2].length === 2 ? m[1].slice(0, 2) + m[2] : m[2];
+  return `${m[1]}-${y2}`;
+}
+function ayDisplay(ay) { const m = /^(\d{4})-(\d{4})$/.exec(ay || ''); return m ? `${m[1]} - ${m[2]}` : (ay || ''); }
+function dayIdx(d) { const i = DAYS.indexOf(d); return i < 0 ? 99 : i; }
+function sortEntries(list) {
+  return [...list].sort((a, b) => byText(a.academicYear, b.academicYear) || SEMESTERS.indexOf(a.semester) - SEMESTERS.indexOf(b.semester) || dayIdx(a.day) - dayIdx(b.day) || toMin(a.startTime) - toMin(b.startTime) || byText(a.faculty, b.faculty));
+}
+function slug(s) { return clean(s).replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'schedule'; }
+function today() { return new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-'); }
+
+function toast(msg, type = 'info', ms = 4200) {
+  const t = h('div', { class: 'toast ' + type, role: 'status' }, msg);
+  $('toasts').append(t);
+  setTimeout(() => t.remove(), ms);
+}
+function setOptions(sel, items, { placeholder, keep = true } = {}) {
+  const prev = sel.value;
+  sel.replaceChildren();
+  if (placeholder !== undefined) sel.append(h('option', { value: '' }, placeholder));
+  for (const it of items) { const [v, l] = Array.isArray(it) ? it : [it, it]; sel.append(h('option', { value: v }, l)); }
+  if (keep && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+function ensureOption(sel, v) {
+  if (!v) return;
+  if (![...sel.options].some(o => o.value === v)) sel.append(h('option', { value: v }, v + '  (not in current list)'));
+  sel.value = v;
+}
+
+/* =====================================================================
+   3. DATA PERSISTENCE, VALIDATION OF STORED DATA & MIGRATION
+   ===================================================================== */
+function defaultState() {
+  return { version: 2, curriculumVersion: CURRICULUM_VERSION, lists: JSON.parse(JSON.stringify(DEFAULT_LISTS)), schedules: [], settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) };
+}
+function inferCategory(subject, semester, lists) {
+  for (const sem of [semester, ...SEMESTERS]) for (const cat of CATEGORIES)
+    if ((lists.subjects[sem]?.[cat] || []).some(s => same(s, subject))) return cat;
+  return 'General Education';
+}
+function normalizeEntry(r, lists) {
+  if (!r || typeof r !== 'object') return null;
+  const day = DAYS.find(d => same(d, r.day)) || '';
+  const e = {
+    id: clean(r.id) || uid(),
+    semester: SEMESTERS.find(s => same(s, r.semester)) || clean(r.semester),
+    academicYear: normAY(r.academicYear),
+    category: CATEGORIES.find(c => same(c, r.category)) || '',
+    subject: clean(r.subject), faculty: clean(r.faculty), classroom: clean(r.classroom), block: clean(r.block),
+    day, startTime: normTime(r.startTime), endTime: normTime(r.endTime),
+    createdAt: r.createdAt || new Date().toISOString(), updatedAt: r.updatedAt || r.createdAt || new Date().toISOString()
+  };
+  if (!e.subject || !e.day || !e.startTime || !e.endTime || toMin(e.endTime) <= toMin(e.startTime)) return null;
+  if (!e.category) e.category = inferCategory(e.subject, e.semester, lists);
+  return e;
+}
+/** Validates any stored/imported object and returns a clean state. Unreadable entries are returned, never silently lost. */
+function normalizeState(obj) {
+  if (!obj || typeof obj !== 'object') throw new Error('Data is not an object.');
+  const d = defaultState();
+  const L = obj.lists && typeof obj.lists === 'object' ? obj.lists : {};
+  const strArr = (a, fb) => Array.isArray(a) ? uniq(a.filter(x => typeof x === 'string' && x.trim()).map(clean)) : fb.slice();
+  const lists = { faculties: strArr(L.faculties, d.lists.faculties), classrooms: strArr(L.classrooms, d.lists.classrooms), blocks: strArr(L.blocks, d.lists.blocks), subjects: {} };
+  for (const sem of SEMESTERS) {
+    lists.subjects[sem] = {};
+    for (const cat of CATEGORIES) {
+      const src = L.subjects?.[sem]?.[cat];
+      lists.subjects[sem][cat] = Array.isArray(src) ? strArr(src, []) : d.lists.subjects[sem][cat].slice();
+    }
+  }
+  const S = obj.settings && typeof obj.settings === 'object' ? obj.settings : {};
+  const settings = { ...d.settings };
+  for (const k of ['university', 'formTitle', 'campus', 'conformeDesignation', 'lastAY']) if (typeof S[k] === 'string') settings[k] = S[k];
+  for (const k of ['preparedBy', 'recommending', 'approved']) if (S[k] && typeof S[k] === 'object') settings[k] = { name: clean(S[k].name), designation: clean(S[k].designation) };
+  if (PAPER_EXCEL[S.paper]) settings.paper = S.paper;
+  if (typeof S.logo === 'string' && /^data:image\/(png|jpe?g);base64,/.test(S.logo)) settings.logo = S.logo;
+
+  const schedules = [], dropped = [], ids = new Set();
+  for (const r of Array.isArray(obj.schedules) ? obj.schedules : []) {
+    const e = normalizeEntry(r, lists);
+    if (!e) { dropped.push(r); continue; }
+    if (ids.has(e.id)) e.id = uid();
+    ids.add(e.id);
+    schedules.push(e);
+  }
+  // Course-code upgrade: rename known subjects to "CODE – Title" in lists and saved schedules (custom subjects are kept).
+  let curriculumVersion = obj.curriculumVersion || 1;
+  if (curriculumVersion < CURRICULUM_VERSION) {
+    const known = curriculumSubjects();
+    for (const sem of SEMESTERS) for (const cat of CATEGORIES) {
+      const custom = lists.subjects[sem][cat].filter(x => !findCurriculum(x));
+      lists.subjects[sem][cat] = uniq([...known[sem][cat], ...custom]);
+    }
+    for (const e of schedules) {
+      const c = findCurriculum(e.subject);
+      if (c) { e.subject = codedName(c); e.category = c[1]; }
+    }
+    curriculumVersion = CURRICULUM_VERSION;
+  }
+  return { state: { version: 2, curriculumVersion, lists, schedules, settings }, dropped };
+}
+function stashDropped(dropped) {
+  if (!dropped.length) return;
+  try {
+    const prev = JSON.parse(localStorage.getItem(SKIPPED_KEY) || '[]');
+    localStorage.setItem(SKIPPED_KEY, JSON.stringify([...(Array.isArray(prev) ? prev : []), ...dropped]));
+  } catch (e) { /* ignore */ }
+  startupNotices.push(`${dropped.length} stored record(s) had missing/invalid times or days and could not be shown. They were kept under the key "${SKIPPED_KEY}" (not deleted).`);
+}
+function loadState() {
+  let raw = null;
+  try { raw = localStorage.getItem(STORE_KEY); } catch (e) { storageAvailable = false; }
+  if (!storageAvailable) { state = defaultState(); startupNotices.push('Browser storage is blocked, so changes will not be saved. Open this file in Chrome/Edge/Firefox normally (not private mode) or use JSON backups.'); return; }
+  if (raw) {
+    try {
+      const { state: s, dropped } = normalizeState(JSON.parse(raw));
+      state = s; stashDropped(dropped); return;
+    } catch (err) {
+      try { localStorage.setItem(STORE_KEY + '_corrupt_' + Date.now(), raw); } catch (e) { /* ignore */ }
+      startupNotices.push('Saved data could not be read. A copy was kept in storage and the app loaded the previous-version data/defaults instead. Use Backup & Restore if you have a JSON backup.');
+    }
+  }
+  // ---- Migration from v1 (bsbio_appData + bsbio_schedule). Old keys are left untouched. ----
+  let legacyApp = null, legacySched = [];
+  try { legacyApp = JSON.parse(localStorage.getItem(LEGACY_APP_KEY) || 'null'); } catch (e) { startupNotices.push('Old faculty/subject lists were unreadable; default lists were used.'); }
+  try { const ls = JSON.parse(localStorage.getItem(LEGACY_SCHEDULE_KEY) || '[]'); if (Array.isArray(ls)) legacySched = ls; } catch (e) { startupNotices.push('Old schedule data was unreadable and could not be imported (it was not deleted).'); }
+  const base = { lists: {}, schedules: legacySched, settings: {} };
+  if (legacyApp && typeof legacyApp === 'object') base.lists = { faculties: legacyApp.faculties, classrooms: legacyApp.classrooms, blocks: legacyApp.blocks, subjects: legacyApp.subjects };
+  const { state: s, dropped } = normalizeState(base);
+  state = s; stashDropped(dropped);
+  if (s.schedules.length) { s.settings.lastAY = s.schedules[s.schedules.length - 1].academicYear; startupNotices.push({ msg: `Imported ${s.schedules.length} schedule(s) from the previous version of the scheduler. Your old data was left untouched.`, type: 'success' }); }
+  save(true);
+}
+function save(silent) {
+  if (!storageAvailable) return false;
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    $('saveState').textContent = 'All changes saved · ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return true;
+  } catch (e) {
+    if (!silent) toast('Could not save — browser storage is full or blocked. Download a JSON backup now.', 'error', 8000);
+    $('saveState').textContent = 'Not saved!';
+    return false;
+  }
+}
+/** Every successful change goes through commit(): auto-save + re-render every view from the same data. */
+function commit(msg) {
+  const ok = save();
+  renderAll();
+  if (msg && ok) toast(msg, 'success');
+}
+
+/* =====================================================================
+   4. SCHEDULE VALIDATION & CONFLICT DETECTION
+   ===================================================================== */
+function validateEntry(e) {
+  const errs = [];
+  const req = [['semester', 'Semester'], ['academicYear', 'Academic Year'], ['category', 'Subject Category'], ['subject', 'Subject'], ['faculty', 'Faculty Name'], ['classroom', 'Classroom'], ['block', 'Block/Section'], ['day', 'Day'], ['startTime', 'Start Time'], ['endTime', 'End Time']];
+  for (const [k, label] of req) if (!clean(e[k])) errs.push(`${label} is required.`);
+  if (e.academicYear) {
+    const m = /^(\d{4})-(\d{4})$/.exec(e.academicYear);
+    if (!m) errs.push('Academic Year must look like 2024-2025.');
+    else if (+m[2] !== +m[1] + 1) errs.push('Academic Year must be two consecutive years (e.g., 2024-2025).');
+  }
+  if (e.day && !DAYS.includes(e.day)) errs.push('Day must be Monday to Saturday.');
+  const s = toMin(e.startTime), en = toMin(e.endTime);
+  if (e.startTime && e.endTime) {
+    if (isNaN(s) || isNaN(en)) errs.push('Start and End Time are not valid times.');
+    else {
+      if (en <= s) errs.push('End Time must be later than Start Time.');
+      if (s < DAY_START || en > DAY_END) errs.push('Classes must fall between 7:00 AM and 5:00 PM (the faculty schedule form range).');
+      if ((s - DAY_START) % SLOT || (en - DAY_START) % SLOT) errs.push('Times must be on the hour or half hour (30-minute intervals).');
+    }
+  }
+  return errs;
+}
+/** Overlap rule: newStart < existingEnd AND newEnd > existingStart (so 7–8 and 8–9 are fine). Same semester + academic year + day only. */
+function findConflicts(entry, excludeId = null, pool = state.schedules) {
+  const s = toMin(entry.startTime), e = toMin(entry.endTime), out = [];
+  for (const x of pool) {
+    if (x.id === excludeId) continue;
+    if (!same(x.semester, entry.semester) || !same(x.academicYear, entry.academicYear) || x.day !== entry.day) continue;
+    if (!(s < toMin(x.endTime) && e > toMin(x.startTime))) continue;
+    const types = [];
+    if (same(x.faculty, entry.faculty)) types.push('Faculty');
+    if (same(x.classroom, entry.classroom)) types.push('Classroom');
+    if (same(x.block, entry.block)) types.push('Block/Section');
+    if (types.length) out.push({ entry: x, types });
+  }
+  return out;
+}
+/** All conflicting pairs already in the data (e.g., from older versions or restores). */
+function allConflictPairs(list) {
+  const groups = new Map(), pairs = [];
+  for (const e of list) { const k = `${e.semester}|${e.academicYear}|${e.day}`.toLowerCase(); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); }
+  for (const g of groups.values()) for (let i = 0; i < g.length; i++) {
+    const hits = findConflicts(g[i], g[i].id, g.slice(i + 1));
+    for (const c of hits) pairs.push({ a: g[i], b: c.entry, types: c.types });
+  }
+  return pairs;
+}
+function describeEntry(x) { return `${x.subject} — ${x.faculty}, ${x.block}, ${x.classroom}, ${x.day} ${timeRange(x)}`; }
+
+/* =====================================================================
+   5. TIMETABLE LAYOUT (shared by screen, print and Excel)
+   ===================================================================== */
+function layoutGrid(entries) {
+  const grid = DAYS.map(() => Array(NSLOTS).fill(null));
+  const placed = [], skipped = [];
+  const sorted = [...entries].sort((a, b) => dayIdx(a.day) - dayIdx(b.day) || toMin(a.startTime) - toMin(b.startTime) || toMin(a.endTime) - toMin(b.endTime));
+  for (const e of sorted) {
+    const d = DAYS.indexOf(e.day);
+    let s = Math.floor((toMin(e.startTime) - DAY_START) / SLOT), en = Math.ceil((toMin(e.endTime) - DAY_START) / SLOT);
+    const clipped = s < 0 || en > NSLOTS;
+    s = Math.max(0, s); en = Math.min(NSLOTS, en);
+    if (d < 0 || en <= s) { skipped.push({ e, reason: 'outside the 7:00 AM – 5:00 PM form' }); continue; }
+    const blocker = grid[d].slice(s, en).find(c => c && c !== 'covered') || grid[d].slice(0, en).reverse().find(c => c && c !== 'covered' && c.start + c.span > s);
+    if (grid[d].slice(s, en).some(Boolean)) { skipped.push({ e, reason: 'overlaps ' + (blocker ? `"${blocker.e.subject}" (${timeRange(blocker.e)})` : 'another class'), conflict: true }); continue; }
+    const cell = { e, d, start: s, span: en - s, clipped };
+    grid[d][s] = cell;
+    for (let i = s + 1; i < en; i++) grid[d][i] = 'covered';
+    placed.push(cell);
+  }
+  return { grid, placed, skipped };
+}
+function termEntries(faculty, sem, ay) {
+  return state.schedules.filter(e => same(e.faculty, faculty) && same(e.semester, sem) && same(e.academicYear, ay));
+}
+
+/* =====================================================================
+   6. RENDERING — official FACULTY SCHEDULE sheet (HTML)
+   ===================================================================== */
+function logoNode() {
+  return state.settings.logo ? h('img', { src: state.settings.logo, alt: 'University logo' }) : h('div', { class: 'logo-ph', title: 'Upload the logo in Reports and Export → Form Settings' }, 'LOGO', h('br'), 'placeholder');
+}
+function termLine(sem, ay) {
+  const S = state.settings, campus = h('span', { class: 'u' }, (S.campus || '').toUpperCase());
+  if (sem === 'Summer') return [h('span', { class: 'u' }, '________'), ' Semester , 20____ - 20____ / Summer ', h('span', { class: 'u' }, ayDisplay(ay) || '______'), '      ', campus, ' Campus'];
+  return [h('span', { class: 'u' }, sem || '________'), ' , ', h('span', { class: 'u' }, ayDisplay(ay) || '20____ - 20____'), ' / Summer 20____      ', campus, ' Campus'];
+}
+function buildSheet(faculty, sem, ay, { interactive = false } = {}) {
+  const S = state.settings;
+  const L = layoutGrid(termEntries(faculty, sem, ay));
+  const colgroup = () => h('colgroup', {}, h('col', { style: { width: '13%' } }), DAYS.map(() => h('col', { style: { width: '14.5%' } })));
+
+  const head = h('table', { class: 'tt-head' }, h('colgroup', {}, h('col', { style: { width: '16%' } }), h('col', {})),
+    h('tr', {}, h('td', { class: 'tt-logo' }, logoNode()), h('td', { class: 'tt-title' }, h('div', { class: 't1' }, S.formTitle), h('div', { class: 't2' }, S.university))));
+
+  const tbody = h('tbody');
+  for (let r = 0; r < NSLOTS; r++) {
+    const a = DAY_START + r * SLOT;
+    const tr = h('tr', { class: r % 2 === 1 ? 'hr-end' : '' }, h('td', { class: 'time' }, `${fmtPlain(a)} - ${fmtPlain(a + SLOT)}`));
+    DAYS.forEach((_, d) => {
+      const c = L.grid[d][r];
+      const last = d === DAYS.length - 1 ? ' last' : '';
+      if (c === 'covered') return;
+      if (!c) { tr.append(h('td', { class: last.trim() })); return; }
+      const e = c.e;
+      const td = h('td', { class: 'cls-cell' + last + (interactive ? ' clickable' : ''), rowSpan: c.span, title: `${e.subject}\n${e.block}\n${e.classroom}\n${e.day} ${timeRange(e)}${interactive ? '\n(click to edit)' : ''}` },
+        h('div', { class: 'cls' + (c.span <= 2 ? ' short' : ''), style: { '--span': c.span } }, (() => { const sp = splitSubject(e.subject); return [sp.code ? h('div', { class: 'c' }, sp.code) : null, h('div', { class: 's' }, sp.title)]; })(), h('div', { class: 'b' }, e.block), h('div', { class: 'r' }, e.classroom)));
+      td.style.setProperty('--span', c.span);
+      td.firstChild.style.setProperty('--span', c.span);
+      if (interactive) td.addEventListener('click', () => startEdit(e.id));
+      tr.append(td);
+    });
+    tbody.append(tr);
+  }
+  const grid = h('table', { class: 'tt-grid' }, colgroup(), h('thead', {}, h('tr', {}, h('th', {}, 'TIME'), DAYS.map(d => h('th', {}, d)))), tbody);
+
+  const sig = h('table', { class: 'tt-sign' },
+    h('colgroup', {}, h('col', { style: { width: '27.5%' } }), h('col', { style: { width: '29%' } }), h('col', { style: { width: '29%' } }), h('col', { style: { width: '14.5%' } })),
+    h('tr', {}, h('td', {}, 'Prepared by:'), h('td', {}, 'Recommending Approval:'), h('td', {}, 'Approved:'), h('td', {}, h('span', { class: 'conf' }, 'Conforme'))),
+    h('tr', { class: 'space' }, h('td'), h('td'), h('td'), h('td')),
+    h('tr', { class: 'nm' }, h('td', {}, S.preparedBy.name), h('td', {}, S.recommending.name), h('td', {}, S.approved.name), h('td', {}, faculty)),
+    h('tr', { class: 'ds' }, h('td', {}, S.preparedBy.designation), h('td', {}, S.recommending.designation), h('td', {}, S.approved.designation), h('td', {}, S.conformeDesignation)));
+
+  const sheet = h('div', { class: 'tt-sheet' }, h('div', { class: 'tt-date' }, today()), head,
+    h('div', { class: 'tt-term' }, termLine(sem, ay)),
+    h('div', { class: 'tt-name' }, 'Name of Faculty :  ', h('span', { class: 'u' }, faculty || '______________________')),
+    grid, sig);
+  return { sheet, layout: L };
+}
+
+/* =====================================================================
+   7. RENDERING — app views
+   ===================================================================== */
+function allSubjects() { const out = []; for (const sem of SEMESTERS) for (const cat of CATEGORIES) out.push(...state.lists.subjects[sem][cat]); return uniq(out).sort(byText); }
+function academicYears() {
+  const ys = uniq([...state.schedules.map(e => e.academicYear), state.settings.lastAY].filter(Boolean));
+  return ys.sort((a, b) => byText(b, a));
+}
+function facultyOptions() { return uniq([...state.lists.faculties, ...state.schedules.map(e => e.faculty)]); }
+
+function renderAll() {
+  renderNavBadges();
+  renderForm();
+  renderEntryTable();
+  renderDashboard();
+  renderTimetable();
+  renderMaster();
+  renderManagers();
+  renderReports();
+  renderBackupInfo();
+}
+
+function renderNav() {
+  const nav = $('nav');
+  nav.replaceChildren(...VIEWS.map(([id, k, label]) => h('button', { type: 'button', dataset: { view: id }, onclick: () => showView(id) }, h('span', { class: 'k' }, k), h('span', {}, label))));
+}
+function renderNavBadges() {
+  const n = allConflictPairs(state.schedules).length;
+  const btn = document.querySelector('#nav button[data-view="dashboard"]');
+  if (!btn) return;
+  btn.querySelector('.badge')?.remove();
+  if (n) btn.append(h('span', { class: 'badge', title: 'Scheduling conflicts' }, n));
+}
+function showView(id) {
+  if (!VIEWS.some(v => v[0] === id)) id = 'dashboard';
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + id));
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.view === id));
+  $('viewTitle').textContent = VIEWS.find(v => v[0] === id)[2];
+  try { sessionStorage.setItem('bsbio_view', id); } catch (e) { /* ignore */ }
+  window.scrollTo(0, 0);
+}
+
+/* ---------- B. Schedule entry form ---------- */
+function initFormStatic() {
+  setOptions($('fSemester'), SEMESTERS);
+  setOptions($('fCategory'), CATEGORIES);
+  setOptions($('fDay'), DAYS, { placeholder: '— Select day —' });
+  const starts = [], ends = [];
+  for (let m = DAY_START; m < DAY_END; m += SLOT) starts.push([toHHMM(m), fmt12(m)]);
+  for (let m = DAY_START + SLOT; m <= DAY_END; m += SLOT) ends.push([toHHMM(m), fmt12(m)]);
+  setOptions($('fStart'), starts, { placeholder: '— Start —' });
+  setOptions($('fEnd'), ends, { placeholder: '— End —' });
+  $('fAY').value = state.settings.lastAY || '';
+}
+function renderForm() {
+  if (editingId) return; // don't disturb values while editing
+  populateSubjectSelect();
+  setOptions($('fFaculty'), state.lists.faculties, { placeholder: '— Select faculty —' });
+  setOptions($('fClassroom'), state.lists.classrooms, { placeholder: '— Select classroom —' });
+  setOptions($('fBlock'), state.lists.blocks, { placeholder: '— Select block/section —' });
+}
+function populateSubjectSelect() {
+  const subs = state.lists.subjects[$('fSemester').value]?.[$('fCategory').value] || [];
+  setOptions($('fSubject'), subs, { placeholder: subs.length ? '— Select subject —' : '— No subjects yet: use + Add —' });
+}
+function readForm() {
+  return {
+    semester: $('fSemester').value, academicYear: normAY($('fAY').value), category: $('fCategory').value,
+    subject: clean($('fSubject').value), faculty: clean($('fFaculty').value), classroom: clean($('fClassroom').value),
+    block: clean($('fBlock').value), day: $('fDay').value, startTime: $('fStart').value, endTime: $('fEnd').value
+  };
+}
+function showFormMsg(kind, title, items) {
+  const box = $('formMsg');
+  box.className = 'alert alert-' + kind;
+  box.replaceChildren(h('strong', {}, title), items && items.length ? h('ul', {}, items.map(i => h('li', {}, i))) : null);
+  box.hidden = false;
+}
+function onSubmitSchedule(ev) {
+  ev.preventDefault();
+  const entry = readForm();
+  $('fAY').value = entry.academicYear;
+  const errs = validateEntry(entry);
+  if (errs.length) { showFormMsg('danger', 'Please correct the following:', errs); return; }
+  const conflicts = findConflicts(entry, editingId);
+  if (conflicts.length) {
+    showFormMsg('danger', '⚠ Scheduling conflict — the schedule was NOT saved.', conflicts.map(c => {
+      const x = c.entry;
+      const who = c.types.map(t => t === 'Faculty' ? `${x.faculty} is already teaching` : t === 'Classroom' ? `${x.classroom} is already in use` : `${x.block} already has a class`).join('; ');
+      return `${c.types.join(' & ')} conflict: ${who} — “${x.subject}” on ${x.day}, ${timeRange(x)} (${x.block}, ${x.classroom}, ${x.faculty}).`;
+    }));
+    return;
+  }
+  $('formMsg').hidden = true;
+  const now = new Date().toISOString();
+  state.settings.lastAY = entry.academicYear;
+  if (editingId) {
+    const i = state.schedules.findIndex(x => x.id === editingId);
+    if (i < 0) { toast('That record no longer exists.', 'error'); exitEdit(); return; }
+    state.schedules[i] = { ...state.schedules[i], ...entry, id: editingId, updatedAt: now };
+    exitEdit();
+    commit('Schedule updated.');
+  } else {
+    state.schedules.push({ ...entry, id: uid(), createdAt: now, updatedAt: now });
+    $('fDay').value = ''; $('fStart').value = ''; $('fEnd').value = '';
+    commit(`Added ${entry.subject} (${entry.day} ${timeRange(entry)}).`);
+  }
+}
+function startEdit(id) {
+  const e = state.schedules.find(x => x.id === id);
+  if (!e) return;
+  exitEdit(false);
+  showView('entry');
+  editingId = id;
+  ensureOption($('fSemester'), e.semester);
+  $('fAY').value = e.academicYear;
+  $('fCategory').value = e.category;
+  populateSubjectSelect();
+  ensureOption($('fSubject'), e.subject);
+  ensureOption($('fFaculty'), e.faculty);
+  ensureOption($('fClassroom'), e.classroom);
+  ensureOption($('fBlock'), e.block);
+  $('fDay').value = e.day;
+  ensureOption($('fStart'), e.startTime);
+  ensureOption($('fEnd'), e.endTime);
+  $('formTitle').textContent = 'Edit Schedule';
+  $('submitBtn').textContent = 'Update Schedule';
+  $('cancelEditBtn').hidden = false;
+  $('editBanner').hidden = false;
+  $('editBanner').textContent = `Editing: ${describeEntry(e)}. Save to update this record (no duplicate is created).`;
+  $('formMsg').hidden = true;
+  renderEntryTable();
+  $('scheduleForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function exitEdit(rerender = true) {
+  const wasEditing = !!editingId;
+  editingId = null;
+  $('formTitle').textContent = 'Add Schedule';
+  $('submitBtn').textContent = 'Add Schedule';
+  $('cancelEditBtn').hidden = true;
+  $('editBanner').hidden = true;
+  $('formMsg').hidden = true;
+  if (wasEditing && rerender) { $('fDay').value = ''; $('fStart').value = ''; $('fEnd').value = ''; renderForm(); renderEntryTable(); }
+}
+function deleteEntry(id) {
+  const e = state.schedules.find(x => x.id === id);
+  if (!e) return;
+  if (!confirm(`Delete this schedule?\n\n${describeEntry(e)}`)) return;
+  state.schedules = state.schedules.filter(x => x.id !== id);
+  if (editingId === id) exitEdit(false);
+  commit('Schedule deleted.');
+}
+function quickAdd(kind) {
+  if (kind === 'subject') {
+    const sem = $('fSemester').value, cat = $('fCategory').value;
+    const name = clean(prompt(`New ${cat} subject for ${sem}:`) || '');
+    if (!name) return;
+    if (!addSubject(sem, cat, name)) return;
+    populateSubjectSelect(); $('fSubject').value = name;
+  } else {
+    const label = { faculties: 'faculty member', classrooms: 'classroom', blocks: 'block/section' }[kind];
+    const name = clean(prompt(`New ${label}:`) || '');
+    if (!name) return;
+    if (!addListItem(kind, name)) return;
+    const sel = { faculties: 'fFaculty', classrooms: 'fClassroom', blocks: 'fBlock' }[kind];
+    $(sel).value = name;
+  }
+}
+
+/* ---------- Shared filter bars ---------- */
+const FILTER_LABELS = { semester: 'Semester', academicYear: 'Academic Year', faculty: 'Faculty', subject: 'Subject', classroom: 'Classroom', block: 'Block/Section', day: 'Day' };
+function buildFilterBar(container, prefix, keys, onChange) {
+  if (container.dataset.built) return;
+  container.dataset.built = '1';
+  container.append(h('div', { class: 'field' }, h('label', { htmlFor: prefix + 'Search' }, 'Search'), h('input', { type: 'search', id: prefix + 'Search', placeholder: 'Subject, faculty, room, block…', oninput: onChange })));
+  for (const k of keys) container.append(h('div', { class: 'field' }, h('label', { htmlFor: prefix + k }, FILTER_LABELS[k]), h('select', { id: prefix + k, onchange: onChange })));
+  container.append(h('div', {}, h('button', { type: 'button', class: 'btn btn-outline', onclick: () => { $(prefix + 'Search').value = ''; keys.forEach(k => { $(prefix + k).value = ''; }); onChange(); } }, 'Clear filters')));
+}
+function filterOptions(k) {
+  const fromData = state.schedules.map(e => e[k]).filter(Boolean);
+  switch (k) {
+    case 'semester': return uniq([...SEMESTERS, ...fromData]);
+    case 'academicYear': return academicYears();
+    case 'faculty': return uniq([...state.lists.faculties, ...fromData]).sort(byText);
+    case 'subject': return uniq([...allSubjects(), ...fromData]).sort(byText);
+    case 'classroom': return uniq([...state.lists.classrooms, ...fromData]);
+    case 'block': return uniq([...state.lists.blocks, ...fromData]);
+    case 'day': return DAYS;
+  }
+  return [];
+}
+function refreshFilterOptions(prefix, keys) { for (const k of keys) setOptions($(prefix + k), filterOptions(k), { placeholder: 'All' }); }
+function readFilters(prefix, keys) { const f = {}; for (const k of keys) f[k] = $(prefix + k).value; f.search = clean($(prefix + 'Search').value).toLowerCase(); return f; }
+function applyFilters(list, f) {
+  return list.filter(e => {
+    for (const [k, v] of Object.entries(f)) if (k !== 'search' && v && !same(e[k], v)) return false;
+    if (f.search) { const hay = [e.subject, e.faculty, e.classroom, e.block, e.day, e.semester, e.academicYear, e.category].join(' ').toLowerCase(); if (!hay.includes(f.search)) return false; }
+    return true;
+  });
+}
+const ENTRY_KEYS = ['semester', 'academicYear', 'faculty', 'subject', 'classroom', 'block', 'day'];
+const MASTER_KEYS = ['semester', 'academicYear', 'faculty', 'block', 'subject', 'classroom'];
+
+function renderEntryTable() {
+  buildFilterBar($('entryFilters'), 'ef', ENTRY_KEYS, renderEntryTable);
+  refreshFilterOptions('ef', ENTRY_KEYS);
+  const list = sortEntries(applyFilters(state.schedules, readFilters('ef', ENTRY_KEYS)));
+  const conflictIds = new Set(allConflictPairs(state.schedules).flatMap(p => [p.a.id, p.b.id]));
+  $('entryCount').textContent = `${list.length} of ${state.schedules.length} schedule record(s) shown`;
+  if (!list.length) { $('entryTable').replaceChildren(h('div', { class: 'empty' }, state.schedules.length ? 'No records match the filters.' : 'No schedules yet. Use the form above to add the first class.')); return; }
+  const rows = list.map(e => h('tr', { class: (conflictIds.has(e.id) ? 'conflict ' : '') + (e.id === editingId ? 'editing' : '') },
+    h('td', {}, e.semester, h('br'), h('span', { class: 'muted' }, e.academicYear)),
+    h('td', {}, e.day), h('td', { style: { whiteSpace: 'nowrap' } }, timeRange(e)),
+    h('td', {}, e.subject, h('br'), h('span', { class: 'tag' }, e.category), conflictIds.has(e.id) ? [' ', h('span', { class: 'tag tag-danger' }, 'conflict')] : null),
+    h('td', {}, e.faculty), h('td', {}, e.classroom), h('td', {}, e.block), h('td', { class: 'num' }, fmtHours(hoursOf(e))),
+    h('td', { style: { whiteSpace: 'nowrap' } }, h('button', { type: 'button', class: 'btn btn-outline btn-sm', onclick: () => startEdit(e.id) }, 'Edit'), ' ', h('button', { type: 'button', class: 'btn btn-danger btn-sm', onclick: () => deleteEntry(e.id) }, 'Delete'))));
+  $('entryTable').replaceChildren(h('table', { class: 'data' }, h('thead', {}, h('tr', {}, ['Term', 'Day', 'Time', 'Subject', 'Faculty', 'Classroom', 'Block', 'Hrs', 'Actions'].map((t, i) => h('th', { class: i === 7 ? 'num' : '' }, t)))), h('tbody', {}, rows)));
+}
+
+/* ---------- A. Dashboard ---------- */
+function termKeys() {
+  const seen = new Map();
+  for (const e of state.schedules) seen.set(`${e.semester}||${e.academicYear}`, [e.semester, e.academicYear]);
+  return [...seen.values()].sort((a, b) => byText(b[1], a[1]) || SEMESTERS.indexOf(a[0]) - SEMESTERS.indexOf(b[0]));
+}
+function renderDashboard() {
+  setOptions($('dashTerm'), termKeys().map(([s, y]) => [`${s}||${y}`, `${s}, A.Y. ${y}`]), { placeholder: 'All terms' });
+  const [sem, ay] = ($('dashTerm').value || '||').split('||');
+  const list = $('dashTerm').value ? state.schedules.filter(e => e.semester === sem && e.academicYear === ay) : state.schedules;
+  const pairs = allConflictPairs(list);
+  const hours = list.reduce((t, e) => t + hoursOf(e), 0);
+  const card = (v, l, cls = '') => h('div', { class: 'card ' + cls }, h('div', { class: 'v' }, v), h('div', { class: 'l' }, l));
+  $('dashCards').replaceChildren(
+    card(state.lists.faculties.length, 'Faculty members'), card(allSubjects().length, 'Subjects'), card(list.length, 'Scheduled classes', 'gold'),
+    card(state.lists.classrooms.length, 'Classrooms'), card(state.lists.blocks.length, 'Block sections'), card(fmtHours(hours), 'Teaching hours / week', 'gold'),
+    card(pairs.length, 'Scheduling conflicts', pairs.length ? 'bad' : ''));
+
+  const load = new Map(facultyOptions().map(f => [f.toLowerCase(), { f, n: 0, hrs: 0, days: new Set() }]));
+  for (const e of list) { const k = e.faculty.toLowerCase(); if (!load.has(k)) load.set(k, { f: e.faculty, n: 0, hrs: 0, days: new Set() }); const r = load.get(k); r.n++; r.hrs += hoursOf(e); r.days.add(e.day); }
+  const rows = [...load.values()].sort((a, b) => b.hrs - a.hrs || byText(a.f, b.f));
+  $('dashLoadNote').textContent = $('dashTerm').value ? '' : '(all terms combined — choose a term for weekly load)';
+  $('dashLoad').replaceChildren(h('table', { class: 'data' }, h('thead', {}, h('tr', {}, h('th', {}, 'Faculty'), h('th', { class: 'num' }, 'Classes'), h('th', { class: 'num' }, 'Hours/week'), h('th', {}, 'Days'))),
+    h('tbody', {}, rows.map(r => h('tr', {}, h('td', {}, h('a', { href: '#', onclick: ev => { ev.preventDefault(); openTimetable(r.f, $('dashTerm').value ? sem : null, $('dashTerm').value ? ay : null); } }, r.f)), h('td', { class: 'num' }, r.n), h('td', { class: 'num' }, fmtHours(r.hrs)), h('td', {}, DAYS.filter(d => r.days.has(d)).map(d => d.slice(0, 3)).join(', ') || '—'))))));
+
+  $('dashConflicts').replaceChildren(pairs.length
+    ? h('div', {}, pairs.map(p => h('div', { class: 'conflict-item' }, h('b', {}, p.types.join(' & ') + ' conflict'), h('div', {}, '• ', describeEntry(p.a), ' ', h('a', { href: '#', onclick: ev => { ev.preventDefault(); startEdit(p.a.id); } }, '[edit]')), h('div', {}, '• ', describeEntry(p.b), ' ', h('a', { href: '#', onclick: ev => { ev.preventDefault(); startEdit(p.b.id); } }, '[edit]')))))
+    : h('div', { class: 'alert alert-ok', style: { marginTop: 0 } }, 'No scheduling conflicts found.'));
+}
+
+/* ---------- C. Faculty timetable ---------- */
+function openTimetable(faculty, sem, ay) {
+  $('ttFaculty').value = faculty;
+  if (sem) $('ttSemester').value = sem;
+  if (ay) ensureOption($('ttAY'), ay);
+  renderTimetable();
+  showView('timetable');
+}
+function renderTimetable() {
+  setOptions($('ttFaculty'), facultyOptions());
+  if (!$('ttSemester').options.length) setOptions($('ttSemester'), SEMESTERS);
+  setOptions($('ttAY'), academicYears(), { placeholder: academicYears().length ? undefined : '— no academic year yet —' });
+  const f = $('ttFaculty').value, sem = $('ttSemester').value, ay = $('ttAY').value;
+  const { sheet, layout } = buildSheet(f, sem, ay, { interactive: true });
+  $('ttHolder').replaceChildren(sheet);
+  const hrs = layout.placed.reduce((t, c) => t + hoursOf(c.e), 0);
+  $('ttSummary').textContent = f ? `${layout.placed.length} class(es) · ${fmtHours(hrs)} teaching hours per week · Click a class on the timetable to edit it.` : '';
+  const warn = [];
+  if (layout.skipped.length) warn.push(h('div', { class: 'alert alert-danger' }, h('strong', {}, 'These classes could not be placed (they would overlap or fall outside the form). Fix them so the official schedule is complete:'),
+    h('ul', {}, layout.skipped.map(s => h('li', {}, describeEntry(s.e), ' — ', s.reason, ' ', h('a', { href: '#', onclick: ev => { ev.preventDefault(); startEdit(s.e.id); } }, '[edit]'))))));
+  if (!ay) warn.push(h('div', { class: 'alert alert-warn' }, 'Add a schedule with an Academic Year first, then choose it here.'));
+  $('ttWarn').replaceChildren(...warn);
+}
+
+/* ---------- D. Master schedule ---------- */
+function masterList() { return sortEntries(applyFilters(state.schedules, readFilters('mf', MASTER_KEYS))); }
+function renderMaster() {
+  buildFilterBar($('masterFilters'), 'mf', MASTER_KEYS, renderMaster);
+  refreshFilterOptions('mf', MASTER_KEYS);
+  const list = masterList(), f = readFilters('mf', MASTER_KEYS);
+  $('masterCount').textContent = `${list.length} class(es)`;
+  const desc = MASTER_KEYS.filter(k => f[k]).map(k => `${FILTER_LABELS[k]}: ${f[k]}`).join(' · ');
+  $('masterPrintHead').replaceChildren(h('div', { style: { textAlign: 'center', fontFamily: 'Arial', marginBottom: '8px' } },
+    h('div', { style: { fontWeight: 700, fontSize: '14px' } }, state.settings.university), h('div', { style: { fontWeight: 700 } }, 'MASTER CLASS SCHEDULE — BS Biology, Natural Science Department'),
+    h('div', { style: { fontSize: '11px' } }, `${(state.settings.campus || '').toUpperCase()} Campus${desc ? ' · ' + desc : ''}`)));
+  if (!list.length) { $('masterHolder').replaceChildren(h('div', { class: 'empty' }, 'No classes match the filters.')); return; }
+  const showTerm = !(f.semester && f.academicYear);
+  const cols = ['Time', 'Subject', 'Block/Section', 'Classroom', 'Faculty', ...(showTerm ? ['Term'] : []), 'Hrs'];
+  const body = h('tbody');
+  for (const d of DAYS) {
+    const day = list.filter(e => e.day === d).sort((a, b) => toMin(a.startTime) - toMin(b.startTime) || byText(a.block, b.block));
+    if (!day.length) continue;
+    body.append(h('tr', { class: 'day-row' }, h('td', { colSpan: cols.length }, `${d}  (${day.length})`)));
+    for (const e of day) body.append(h('tr', {}, h('td', { style: { whiteSpace: 'nowrap' } }, timeRange(e)), h('td', {}, e.subject), h('td', {}, e.block), h('td', {}, e.classroom), h('td', {}, e.faculty), showTerm ? h('td', {}, `${e.semester}, ${e.academicYear}`) : null, h('td', { class: 'num' }, fmtHours(hoursOf(e)))));
+  }
+  $('masterHolder').replaceChildren(h('table', { class: 'data' }, h('thead', {}, h('tr', {}, cols.map(c => h('th', { class: c === 'Hrs' ? 'num' : '' }, c)))), body));
+}
+
+/* ---------- E, G, H. List managers; F. Subject manager ---------- */
+const MANAGERS = {
+  faculties: { view: 'view-faculty', field: 'faculty', label: 'Faculty member', plural: 'Faculty' },
+  classrooms: { view: 'view-classrooms', field: 'classroom', label: 'Classroom', plural: 'Classrooms' },
+  blocks: { view: 'view-blocks', field: 'block', label: 'Block/Section', plural: 'Blocks/Sections' }
+};
+function addListItem(key, name) {
+  name = clean(name);
+  if (!name) { toast('Please type a name first.', 'error'); return false; }
+  if (state.lists[key].some(x => same(x, name))) { toast(`"${name}" is already in the list.`, 'error'); return false; }
+  state.lists[key].push(name);
+  commit(`${MANAGERS[key].label} "${name}" added. All dropdowns are updated.`);
+  return true;
+}
+function renameListItem(key, oldName) {
+  const m = MANAGERS[key];
+  const name = clean(prompt(`Rename ${m.label.toLowerCase()} "${oldName}" to:`, oldName) || '');
+  if (!name || name === oldName) return;
+  if (state.lists[key].some(x => same(x, name) && x !== oldName)) { toast(`"${name}" already exists.`, 'error'); return; }
+  const used = state.schedules.filter(e => same(e[m.field], oldName));
+  state.lists[key] = state.lists[key].map(x => x === oldName ? name : x);
+  used.forEach(e => { e[m.field] = name; e.updatedAt = new Date().toISOString(); });
+  commit(`Renamed to "${name}"${used.length ? ` and updated ${used.length} schedule(s)` : ''}.`);
+}
+function deleteListItem(key, name) {
+  const m = MANAGERS[key];
+  const used = state.schedules.filter(e => same(e[m.field], name)).length;
+  const msg = used ? `"${name}" is used by ${used} schedule(s).\n\nRemove it from the dropdown list anyway? The existing schedules are kept (edit or delete them in Schedule Entry).` : `Remove "${name}" from the list?`;
+  if (!confirm(msg)) return;
+  state.lists[key] = state.lists[key].filter(x => x !== name);
+  commit(`"${name}" removed from the list.`);
+}
+function renderListManager(key) {
+  const m = MANAGERS[key], view = $(m.view);
+  if (!view.dataset.built) {
+    view.dataset.built = '1';
+    const input = h('input', { type: 'text', id: key + 'NewName', placeholder: `New ${m.label.toLowerCase()} name` });
+    const form = h('form', { class: 'panel', onsubmit: ev => { ev.preventDefault(); if (addListItem(key, input.value)) input.value = ''; } },
+      h('h3', {}, `Add ${m.label}`), h('div', { class: 'toolbar' }, h('div', { class: 'field wide' }, input), h('button', { type: 'submit', class: 'btn btn-primary' }, 'Add')));
+    view.append(form, h('div', { class: 'panel' }, h('h3', {}, m.plural, ' ', h('small', { id: key + 'Count' })), h('div', { class: 'table-wrap', id: key + 'Table' })));
+  }
+  const items = state.lists[key];
+  $(key + 'Count').textContent = `${items.length} total`;
+  $(key + 'Table').replaceChildren(items.length ? h('table', { class: 'data' }, h('thead', {}, h('tr', {}, h('th', {}, '#'), h('th', {}, m.label), h('th', { class: 'num' }, 'Scheduled classes'), h('th', {}, 'Actions'))),
+    h('tbody', {}, items.map((x, i) => h('tr', {}, h('td', { class: 'muted' }, i + 1),
+      h('td', {}, key === 'faculties' ? h('a', { href: '#', onclick: ev => { ev.preventDefault(); openTimetable(x); } }, x) : x),
+      h('td', { class: 'num' }, state.schedules.filter(e => same(e[m.field], x)).length),
+      h('td', { style: { whiteSpace: 'nowrap' } }, h('button', { type: 'button', class: 'btn btn-outline btn-sm', onclick: () => renameListItem(key, x) }, 'Rename'), ' ', h('button', { type: 'button', class: 'btn btn-danger btn-sm', onclick: () => deleteListItem(key, x) }, 'Delete'))))))
+    : h('div', { class: 'empty' }, 'The list is empty.'));
+}
+function addSubject(sem, cat, name) {
+  name = clean(name);
+  if (!name) { toast('Please type a subject name.', 'error'); return false; }
+  if (!state.lists.subjects[sem]) { toast('Unknown semester.', 'error'); return false; }
+  const dupe = CATEGORIES.find(c => state.lists.subjects[sem][c].some(x => same(x, name)));
+  if (dupe) { toast(`"${name}" already exists in ${sem} (${dupe}).`, 'error'); return false; }
+  state.lists.subjects[sem][cat].push(name);
+  commit(`Subject "${name}" added to ${sem} · ${cat}.`);
+  return true;
+}
+function renderSubjectManager() {
+  const view = $('view-subjects');
+  if (!view.dataset.built) {
+    view.dataset.built = '1';
+    const sem = h('select', { id: 'smSemester', onchange: renderSubjectManager }), cat = h('select', { id: 'smCategory', onchange: renderSubjectManager });
+    setOptions(sem, SEMESTERS); setOptions(cat, CATEGORIES);
+    const input = h('input', { type: 'text', id: 'smNewName', placeholder: 'New subject title' });
+    view.append(h('form', { class: 'panel', onsubmit: ev => { ev.preventDefault(); if (addSubject(sem.value, cat.value, input.value)) input.value = ''; } },
+      h('h3', {}, 'Subjects by Semester and Category'),
+      h('div', { class: 'toolbar' }, h('div', { class: 'field' }, h('label', { htmlFor: 'smSemester' }, 'Semester'), sem), h('div', { class: 'field' }, h('label', { htmlFor: 'smCategory' }, 'Category'), cat),
+        h('div', { class: 'field wide' }, h('label', { htmlFor: 'smNewName' }, 'Add subject'), input), h('button', { type: 'submit', class: 'btn btn-primary' }, 'Add Subject'))),
+      h('div', { class: 'panel' }, h('h3', {}, 'Subjects ', h('small', { id: 'smCount' })), h('div', { class: 'table-wrap', id: 'smTable' })));
+  }
+  const sem = $('smSemester').value, cat = $('smCategory').value, items = state.lists.subjects[sem][cat];
+  $('smCount').textContent = `${items.length} in ${sem} · ${cat}`;
+  const usage = x => state.schedules.filter(e => same(e.subject, x) && same(e.semester, sem)).length;
+  $('smTable').replaceChildren(items.length ? h('table', { class: 'data' }, h('thead', {}, h('tr', {}, h('th', {}, '#'), h('th', {}, 'Subject'), h('th', { class: 'num' }, 'Scheduled classes'), h('th', {}, 'Actions'))),
+    h('tbody', {}, items.map((x, i) => h('tr', {}, h('td', { class: 'muted' }, i + 1), h('td', {}, x), h('td', { class: 'num' }, usage(x)),
+      h('td', { style: { whiteSpace: 'nowrap' } },
+        h('button', { type: 'button', class: 'btn btn-outline btn-sm', onclick: () => {
+          const name = clean(prompt(`Rename subject "${x}" to:`, x) || '');
+          if (!name || name === x) return;
+          if (CATEGORIES.some(c => state.lists.subjects[sem][c].some(y => same(y, name) && y !== x))) { toast(`"${name}" already exists in ${sem}.`, 'error'); return; }
+          state.lists.subjects[sem][cat] = items.map(y => y === x ? name : y);
+          const used = state.schedules.filter(e => same(e.subject, x) && same(e.semester, sem));
+          used.forEach(e => { e.subject = name; e.updatedAt = new Date().toISOString(); });
+          commit(`Subject renamed${used.length ? ` and ${used.length} schedule(s) updated` : ''}.`);
+        } }, 'Rename'), ' ',
+        h('button', { type: 'button', class: 'btn btn-danger btn-sm', onclick: () => {
+          const n = usage(x);
+          if (!confirm(n ? `"${x}" is used by ${n} schedule(s) this semester.\n\nRemove it from the subject list anyway? Existing schedules are kept.` : `Remove "${x}" from ${sem} · ${cat}?`)) return;
+          state.lists.subjects[sem][cat] = items.filter(y => y !== x);
+          commit('Subject removed from the list.');
+        } }, 'Delete'))))))
+    : h('div', { class: 'empty' }, 'No subjects in this semester/category yet.'));
+}
+function renderManagers() { Object.keys(MANAGERS).forEach(renderListManager); renderSubjectManager(); }
+
+/* ---------- I. Reports & settings ---------- */
+function renderReports() {
+  if (!$('rpSemester').options.length) setOptions($('rpSemester'), SEMESTERS);
+  setOptions($('rpAY'), academicYears());
+  setOptions($('rpFaculty'), facultyOptions());
+  const S = state.settings;
+  const map = { sUniversity: S.university, sTitle: S.formTitle, sCampus: S.campus, sPrepName: S.preparedBy.name, sPrepDes: S.preparedBy.designation, sRecName: S.recommending.name, sRecDes: S.recommending.designation, sAppName: S.approved.name, sAppDes: S.approved.designation, sConfDes: S.conformeDesignation, sPaper: S.paper };
+  if (document.activeElement?.closest('#settingsForm') == null) for (const [id, v] of Object.entries(map)) $(id).value = v;
+  $('logoPreview').replaceChildren(S.logo ? h('img', { src: S.logo, alt: 'Logo preview' }) : h('div', { class: 'logo-ph' }, 'LOGO'));
+  $('pageStyle').textContent = `@page { size: ${S.paper === 'a4' ? 'A4' : S.paper} landscape; margin: 7mm; }`;
+}
+function saveSettings(ev) {
+  ev.preventDefault();
+  const S = state.settings;
+  S.university = clean($('sUniversity').value) || DEFAULT_SETTINGS.university;
+  S.formTitle = clean($('sTitle').value) || DEFAULT_SETTINGS.formTitle;
+  S.campus = clean($('sCampus').value);
+  S.preparedBy = { name: clean($('sPrepName').value), designation: clean($('sPrepDes').value) };
+  S.recommending = { name: clean($('sRecName').value), designation: clean($('sRecDes').value) };
+  S.approved = { name: clean($('sAppName').value), designation: clean($('sAppDes').value) };
+  S.conformeDesignation = clean($('sConfDes').value);
+  S.paper = $('sPaper').value;
+  document.activeElement?.blur();
+  commit('Form settings saved.');
+}
+function onLogoFile(ev) {
+  const file = ev.target.files[0];
+  ev.target.value = '';
+  if (!file) return;
+  if (!/^image\/(png|jpeg)$/.test(file.type)) { toast('Please choose a PNG or JPG image.', 'error'); return; }
+  const img = new Image();
+  img.onload = () => {
+    const max = 240, scale = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement('canvas'); c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    state.settings.logo = c.toDataURL('image/png');
+    URL.revokeObjectURL(img.src);
+    commit('Logo updated.');
+  };
+  img.onerror = () => toast('That image could not be read.', 'error');
+  img.src = URL.createObjectURL(file);
+}
+
+/* ---------- J. Backup info ---------- */
+function renderBackupInfo() {
+  let bytes = 0; try { bytes = (localStorage.getItem(STORE_KEY) || '').length; } catch (e) { /* ignore */ }
+  let hasUndo = false; try { hasUndo = !!localStorage.getItem(PRERESTORE_KEY); } catch (e) { /* ignore */ }
+  $('undoRestoreBtn').disabled = !hasUndo;
+  $('storageInfo').replaceChildren(h('div', {}, `Stored in this browser: ${state.schedules.length} schedules, ${state.lists.faculties.length} faculty, ${allSubjects().length} subjects, ${state.lists.classrooms.length} classrooms, ${state.lists.blocks.length} blocks (≈ ${(bytes / 1024).toFixed(1)} KB).`),
+    h('div', {}, 'Data lives only in this browser on this computer. Back up regularly, and before clearing browser data.'));
+}
+
+/* =====================================================================
+   8. BACKUP & RESTORE (JSON)
+   ===================================================================== */
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = h('a', { href: url, download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+function backupJSON() {
+  const payload = { app: 'bsbio-faculty-scheduler', version: 2, exportedAt: new Date().toISOString(), data: state };
+  downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `bsbio-scheduler-backup-${new Date().toISOString().slice(0, 10)}.json`);
+  toast('Backup downloaded.', 'success');
+}
+function restoreJSON(ev) {
+  const file = ev.target.files[0];
+  ev.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const box = $('restoreMsg');
+    try {
+      let obj = JSON.parse(reader.result);
+      if (Array.isArray(obj)) obj = { schedules: obj, lists: state.lists, settings: state.settings };       // v1 schedule array
+      else if (obj && obj.data && typeof obj.data === 'object') obj = obj.data;                                 // v2 backup wrapper
+      if (!obj || typeof obj !== 'object' || (!Array.isArray(obj.schedules) && !obj.lists)) throw new Error('This file is not a scheduler backup.');
+      const { state: s, dropped } = normalizeState(obj);
+      const msg = `Replace the current data (${state.schedules.length} schedules) with the backup (${s.schedules.length} schedules, ${s.lists.faculties.length} faculty)?` + (dropped.length ? `\n\n${dropped.length} record(s) in the file are invalid and will be skipped.` : '');
+      if (!confirm(msg)) return;
+      try { localStorage.setItem(PRERESTORE_KEY, JSON.stringify(state)); } catch (e) { if (!confirm('Could not keep an undo copy (storage full). Continue anyway?')) return; }
+      state = s; exitEdit(false);
+      commit(`Restored ${s.schedules.length} schedules from backup.`);
+      box.replaceChildren(h('div', { class: 'alert alert-ok' }, `Restore complete: ${s.schedules.length} schedules loaded.` + (dropped.length ? ` ${dropped.length} invalid record(s) skipped.` : '')));
+    } catch (err) {
+      box.replaceChildren(h('div', { class: 'alert alert-danger' }, 'Restore failed: ', err.message || 'the file is not valid JSON.', ' Your current data was not changed.'));
+    }
+  };
+  reader.onerror = () => toast('Could not read the file.', 'error');
+  reader.readAsText(file);
+}
+function undoRestore() {
+  try {
+    const raw = localStorage.getItem(PRERESTORE_KEY);
+    if (!raw) return;
+    if (!confirm('Go back to the data as it was before the last restore/reset?')) return;
+    state = normalizeState(JSON.parse(raw)).state;
+    localStorage.removeItem(PRERESTORE_KEY);
+    exitEdit(false);
+    commit('Previous data brought back.');
+  } catch (e) { toast('Undo failed: the saved copy is unreadable.', 'error'); }
+}
+function resetDefaults() {
+  if (!confirm('Reset to the original default lists and delete ALL schedules?\n\nA copy is kept so you can use “Undo Last Restore”. Download a JSON backup first if unsure.')) return;
+  if (prompt('Type RESET to confirm:') !== 'RESET') { toast('Reset cancelled.'); return; }
+  try { localStorage.setItem(PRERESTORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+  const keep = { logo: state.settings.logo };
+  state = defaultState(); state.settings.logo = keep.logo;
+  exitEdit(false);
+  commit('Data reset to defaults.');
+}
+
+/* =====================================================================
+   9. EXCEL EXPORT (.xlsx via ExcelJS) — reproduces the PSU form
+   ===================================================================== */
+function loadExcelJS() {
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = EXCELJS_CDN;
+    s.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('ExcelJS failed to start.'));
+    s.onerror = () => reject(new Error('The Excel library could not be loaded. Keep "exceljs.min.js" in the same folder as index.html, or connect to the internet.'));
+    document.head.append(s);
+  });
+}
+const XL = {
+  thin: { style: 'thin', color: { argb: 'FF000000' } },
+  med: { style: 'medium', color: { argb: 'FF000000' } },
+  font: (o = {}) => ({ name: 'Arial', size: 9, ...o })
+};
+function xlBox(ws, r1, c1, r2, c2, style) {
+  for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) {
+    const cell = ws.getCell(r, c), b = { ...(cell.border || {}) };
+    if (r === r1) b.top = style; if (r === r2) b.bottom = style; if (c === c1) b.left = style; if (c === c2) b.right = style;
+    cell.border = b;
+  }
+}
+function sheetName(name, used) {
+  let base = clean(name).replace(/[\[\]:*?\/\\']/g, '').slice(0, 28) || 'Faculty';
+  let n = base, i = 2;
+  while (used.has(n.toLowerCase())) n = `${base.slice(0, 26)} ${i++}`;
+  used.add(n.toLowerCase());
+  return n;
+}
+function addFacultyWorksheet(wb, faculty, sem, ay, used) {
+  const S = state.settings;
+  const ws = wb.addWorksheet(sheetName(faculty, used), {
+    pageSetup: { orientation: 'landscape', paperSize: PAPER_EXCEL[S.paper] || 1, fitToPage: true, fitToWidth: 1, fitToHeight: 1, horizontalCentered: true, margins: { left: 0.3, right: 0.3, top: 0.35, bottom: 0.3, header: 0.15, footer: 0.15 } },
+    views: [{ showGridLines: false }]
+  });
+  ws.headerFooter = { oddHeader: '&R&"Arial,Italic"&7&D' };
+  ws.columns = [{ width: 15 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 20 }];
+  const center = { horizontal: 'center', vertical: 'middle', wrapText: true };
+
+  // Header block (rows 1–3)
+  ws.mergeCells('A1:A3'); ws.mergeCells('B1:G1'); ws.mergeCells('B2:G2'); ws.mergeCells('B3:G3');
+  ws.getRow(1).height = 30; ws.getRow(2).height = 14; ws.getRow(3).height = 12;
+  Object.assign(ws.getCell('B1'), { value: S.formTitle, font: XL.font({ size: 16, bold: true }), alignment: { horizontal: 'center', vertical: 'bottom' } });
+  Object.assign(ws.getCell('B2'), { value: S.university, font: XL.font({ size: 8, bold: true }), alignment: { horizontal: 'center', vertical: 'top' } });
+  xlBox(ws, 1, 1, 3, 1, XL.med); xlBox(ws, 1, 2, 3, 7, XL.med);
+  const m = S.logo && /^data:image\/(png|jpe?g);base64,(.+)$/.exec(S.logo);
+  if (m) {
+    const id = wb.addImage({ base64: m[2], extension: m[1] === 'png' ? 'png' : 'jpeg' });
+    ws.addImage(id, { tl: { col: 0.32, row: 0.12 }, ext: { width: 54, height: 54 }, editAs: 'oneCell' });
+  } else {
+    Object.assign(ws.getCell('A1'), { value: 'LOGO', font: XL.font({ size: 8, italic: true, color: { argb: 'FF7F8C9D' } }), alignment: center });
+  }
+
+  // Term & faculty lines (rows 4–5)
+  ws.mergeCells('A4:G4'); ws.mergeCells('A5:G5');
+  ws.getRow(4).height = 16; ws.getRow(5).height = 16;
+  const u = t => ({ text: t, font: XL.font({ bold: true, underline: true }) }), p = t => ({ text: t, font: XL.font({ bold: true }) });
+  const campus = (S.campus || '').toUpperCase();
+  ws.getCell('A4').value = { richText: sem === 'Summer'
+    ? [u('________'), p(' Semester , 20____ - 20____ / Summer '), u(` ${ayDisplay(ay)} `), p('        '), u(` ${campus} `), p(' Campus')]
+    : [u(` ${sem} `), p(' , '), u(` ${ayDisplay(ay)} `), p(' / Summer 20____        '), u(` ${campus} `), p(' Campus')] };
+  ws.getCell('A4').alignment = center;
+  ws.getCell('A5').value = { richText: [p('Name of Faculty :  '), u(` ${faculty} `)] };
+  ws.getCell('A5').alignment = center;
+
+  // Grid header (row 6) and 30-minute rows (7–26)
+  const HDR = 6, FIRST = 7, LAST = FIRST + NSLOTS - 1;
+  ws.getRow(HDR).height = 20;
+  ['TIME', ...DAYS].forEach((t, i) => Object.assign(ws.getCell(HDR, i + 1), { value: t, font: XL.font({ bold: true }), alignment: center }));
+  for (let r = 0; r < NSLOTS; r++) {
+    const row = FIRST + r, a = DAY_START + r * SLOT;
+    ws.getRow(row).height = 17;
+    Object.assign(ws.getCell(row, 1), { value: `${fmtPlain(a)} - ${fmtPlain(a + SLOT)}`, font: XL.font({ bold: true }), alignment: center });
+    for (let c = 1; c <= 7; c++) ws.getCell(row, c).border = { top: XL.thin, left: c === 1 ? XL.med : XL.thin, right: (c === 1 || c === 7) ? XL.med : XL.thin, bottom: r % 2 === 1 ? XL.med : XL.thin };
+  }
+  for (let c = 1; c <= 7; c++) ws.getCell(HDR, c).border = { top: XL.med, bottom: XL.med, left: c === 1 ? XL.med : XL.thin, right: (c === 1 || c === 7) ? XL.med : XL.thin };
+
+  // Classes as vertically merged cells
+  const L = layoutGrid(termEntries(faculty, sem, ay));
+  for (const c of L.placed) {
+    const r1 = FIRST + c.start, r2 = r1 + c.span - 1, col = 2 + c.d;
+    if (c.span > 1) ws.mergeCells(r1, col, r2, col);
+    const small = c.span <= 2;
+    const cell = ws.getCell(r1, col);
+    const sp = splitSubject(c.e.subject);
+    cell.value = { richText: [...(sp.code ? [{ text: sp.code + '\n', font: XL.font({ bold: true, size: small ? 6.5 : 7.5 }) }] : []), { text: sp.title + '\n', font: XL.font({ bold: true, size: small ? 7 : 8 }) }, { text: c.e.block + '\n', font: XL.font({ size: small ? 6.5 : 7.5 }) }, { text: c.e.classroom, font: XL.font({ size: small ? 6.5 : 7.5, italic: true }) }] };
+    cell.alignment = center;
+    for (let r = r1; r <= r2; r++) ws.getCell(r, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEAF0F8' } };
+    xlBox(ws, r1, col, r2, col, XL.thin);
+    if ((c.start + c.span) % 2 === 0) { const b = ws.getCell(r2, col); b.border = { ...b.border, bottom: XL.med }; }
+    if (col === 7) for (let r = r1; r <= r2; r++) { const b = ws.getCell(r, 7); b.border = { ...b.border, right: XL.med }; }
+  }
+
+  // Signature block (rows 28–31): Prepared | Recommending | Approved | Conforme
+  const SIG = LAST + 2;
+  ws.getRow(LAST + 1).height = 6;
+  const groups = [[1, 2, 'Prepared by:', S.preparedBy.name, S.preparedBy.designation], [3, 4, 'Recommending Approval:', S.recommending.name, S.recommending.designation], [5, 6, 'Approved:', S.approved.name, S.approved.designation], [7, 7, 'Conforme', faculty, S.conformeDesignation]];
+  [16, 20, 14, 14].forEach((ht, i) => { ws.getRow(SIG + i).height = ht; });
+  for (const [c1, c2, label, name, des] of groups) {
+    for (let i = 0; i < 4; i++) if (c2 > c1) ws.mergeCells(SIG + i, c1, SIG + i, c2);
+    Object.assign(ws.getCell(SIG, c1), { value: label, font: XL.font({ size: 8, bold: true, italic: c1 === 7, underline: c1 === 7 }), alignment: { vertical: 'middle', horizontal: 'left' } });
+    Object.assign(ws.getCell(SIG + 2, c1), { value: (name || '').toUpperCase(), font: XL.font({ size: 8, bold: true, italic: true, underline: true }), alignment: center });
+    Object.assign(ws.getCell(SIG + 3, c1), { value: des, font: XL.font({ size: 7.5, italic: true, underline: true }), alignment: center });
+    xlBox(ws, SIG, c1, SIG + 3, c2, XL.med);
+    xlBox(ws, SIG, c1, SIG, c2, XL.med);
+  }
+  ws.pageSetup.printArea = `A1:G${SIG + 3}`;
+  return { ws, layout: L };
+}
+async function exportFacultyExcel(faculty, sem, ay) {
+  if (!faculty || !ay) { toast('Choose a faculty member and an academic year first.', 'error'); return; }
+  try {
+    const ExcelJS = await loadExcelJS();
+    const wb = new ExcelJS.Workbook(); wb.creator = 'BS Biology Faculty Scheduling System'; wb.created = new Date();
+    const { layout } = addFacultyWorksheet(wb, faculty, sem, ay, new Set());
+    await downloadWorkbook(wb, `Faculty-Schedule_${slug(faculty)}_${slug(sem)}_${ay}.xlsx`);
+    toast(layout.skipped.length ? `Exported, but ${layout.skipped.length} overlapping/out-of-range class(es) were left out — fix them in Schedule Entry.` : 'Faculty schedule exported to Excel.', layout.skipped.length ? 'error' : 'success', 6000);
+  } catch (e) { toast(e.message, 'error', 8000); }
+}
+async function exportAllFacultyExcel(sem, ay, includeEmpty) {
+  if (!ay) { toast('Choose an academic year first.', 'error'); return; }
+  const fac = facultyOptions().filter(f => includeEmpty || termEntries(f, sem, ay).length);
+  if (!fac.length) { toast(`No classes found for ${sem}, ${ay}.`, 'error'); return; }
+  try {
+    const ExcelJS = await loadExcelJS();
+    const wb = new ExcelJS.Workbook(); wb.creator = 'BS Biology Faculty Scheduling System'; wb.created = new Date();
+    const used = new Set(); let skipped = 0;
+    for (const f of fac) skipped += addFacultyWorksheet(wb, f, sem, ay, used).layout.skipped.length;
+    await downloadWorkbook(wb, `All-Faculty-Schedules_${slug(sem)}_${ay}.xlsx`);
+    toast(`Exported ${fac.length} faculty schedule(s), one sheet each.` + (skipped ? ` ${skipped} conflicting class(es) left out.` : ''), skipped ? 'error' : 'success', 6000);
+  } catch (e) { toast(e.message, 'error', 8000); }
+}
+async function exportMasterExcel(list, subtitle, fileTag) {
+  if (!list.length) { toast('There are no classes to export.', 'error'); return; }
+  try {
+    const ExcelJS = await loadExcelJS();
+    const S = state.settings;
+    const wb = new ExcelJS.Workbook(); wb.creator = 'BS Biology Faculty Scheduling System'; wb.created = new Date();
+    const ws = wb.addWorksheet('Master Schedule', { pageSetup: { orientation: 'landscape', paperSize: PAPER_EXCEL[S.paper] || 1, fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 } }, views: [{ state: 'frozen', ySplit: 5 }] });
+    const cols = [['Day', 12], ['Start', 10], ['End', 10], ['Course Code', 17], ['Subject', 40], ['Category', 17], ['Block/Section', 15], ['Classroom', 21], ['Faculty', 28], ['Semester', 14], ['Academic Year', 13], ['Hours', 8]];
+    ws.columns = cols.map(([, w]) => ({ width: w }));
+    ws.mergeCells(1, 1, 1, cols.length); ws.mergeCells(2, 1, 2, cols.length); ws.mergeCells(3, 1, 3, cols.length);
+    Object.assign(ws.getCell(1, 1), { value: S.university, font: XL.font({ size: 14, bold: true }), alignment: { horizontal: 'center' } });
+    Object.assign(ws.getCell(2, 1), { value: `MASTER CLASS SCHEDULE — BS Biology, Natural Science Department, ${(S.campus || '').toUpperCase()} Campus`, font: XL.font({ size: 11, bold: true }), alignment: { horizontal: 'center' } });
+    Object.assign(ws.getCell(3, 1), { value: subtitle, font: XL.font({ size: 9, italic: true }), alignment: { horizontal: 'center' } });
+    cols.forEach(([t], i) => Object.assign(ws.getCell(5, i + 1), { value: t, font: XL.font({ bold: true, color: { argb: 'FFFFFFFF' } }), fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2545' } }, alignment: { vertical: 'middle', horizontal: 'center', wrapText: true }, border: { top: XL.thin, bottom: XL.thin, left: XL.thin, right: XL.thin } }));
+    const sorted = [...list].sort((a, b) => dayIdx(a.day) - dayIdx(b.day) || toMin(a.startTime) - toMin(b.startTime) || byText(a.block, b.block));
+    sorted.forEach((e, i) => {
+      const row = ws.getRow(6 + i);
+      row.values = [e.day, fmt12(toMin(e.startTime)), fmt12(toMin(e.endTime)), splitSubject(e.subject).code, splitSubject(e.subject).title, e.category, e.block, e.classroom, e.faculty, e.semester, e.academicYear, hoursOf(e)];
+      row.eachCell({ includeEmpty: true }, (c, n) => { c.font = XL.font(); c.border = { top: XL.thin, bottom: XL.thin, left: XL.thin, right: XL.thin }; c.alignment = { vertical: 'top', wrapText: true, horizontal: n === 12 ? 'right' : 'left' }; if (i % 2) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F6FA' } }; });
+    });
+    ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + sorted.length, column: cols.length } };
+    ws.pageSetup.printTitlesRow = '5:5';
+
+    const ls = wb.addWorksheet('Teaching Load', { pageSetup: { orientation: 'portrait', paperSize: PAPER_EXCEL[S.paper] || 1, fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+    ls.columns = [{ width: 34 }, { width: 12 }, { width: 14 }, { width: 30 }];
+    const load = new Map();
+    for (const e of list) { const r = load.get(e.faculty) || { n: 0, h: 0, d: new Set() }; r.n++; r.h += hoursOf(e); r.d.add(e.day); load.set(e.faculty, r); }
+    ls.addRow(['Faculty', 'Classes', 'Hours / week', 'Days']).eachCell(c => { c.font = XL.font({ bold: true, color: { argb: 'FFFFFFFF' } }); c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2545' } }; });
+    [...load.entries()].sort((a, b) => b[1].h - a[1].h).forEach(([f, r]) => ls.addRow([f, r.n, r.h, DAYS.filter(d => r.d.has(d)).join(', ')]));
+    ls.eachRow(row => row.eachCell(c => { c.border = { top: XL.thin, bottom: XL.thin, left: XL.thin, right: XL.thin }; if (!c.font?.bold) c.font = XL.font(); }));
+    await downloadWorkbook(wb, `Master-Class-Schedule_${fileTag}.xlsx`);
+    toast(`Master schedule exported (${list.length} classes).`, 'success');
+  } catch (e) { toast(e.message, 'error', 8000); }
+}
+async function downloadWorkbook(wb, filename) {
+  const buf = await wb.xlsx.writeBuffer();
+  downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), filename);
+}
+function exportCSV(list, filename) {
+  if (!list.length) { toast('There are no classes to export.', 'error'); return; }
+  const head = ['Semester', 'Academic Year', 'Category', 'Subject', 'Classroom', 'Faculty', 'Block/Section', 'Day', 'Start', 'End', 'Hours'];
+  const q = v => { const s = String(v ?? ''); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const lines = [head, ...sortEntries(list).map(e => [e.semester, e.academicYear, e.category, e.subject, e.classroom, e.faculty, e.block, e.day, fmt12(toMin(e.startTime)), fmt12(toMin(e.endTime)), hoursOf(e)])].map(r => r.map(q).join(','));
+  downloadBlob(new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), filename);
+}
+
+/* =====================================================================
+   10. PRINT / PDF
+   ===================================================================== */
+function doPrint(mode) {
+  document.body.dataset.print = mode;
+  const done = () => { delete document.body.dataset.print; $('printAll').replaceChildren(); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  setTimeout(() => { window.print(); setTimeout(() => { if (document.body.dataset.print) done(); }, 1500); }, 50);
+}
+function printFaculty(faculty, sem, ay) {
+  if (!faculty || !ay) { toast('Choose a faculty member and an academic year first.', 'error'); return; }
+  $('printAll').replaceChildren(buildSheet(faculty, sem, ay).sheet);
+  doPrint('all');
+}
+function printAllFaculty(sem, ay, includeEmpty) {
+  if (!ay) { toast('Choose an academic year first.', 'error'); return; }
+  const fac = facultyOptions().filter(f => includeEmpty || termEntries(f, sem, ay).length);
+  if (!fac.length) { toast(`No classes found for ${sem}, ${ay}.`, 'error'); return; }
+  $('printAll').replaceChildren(...fac.map(f => buildSheet(f, sem, ay).sheet));
+  doPrint('all');
+}
+
+/* =====================================================================
+   11. LOGIN, EVENTS & START-UP
+   ===================================================================== */
+function startApp() {
+  $('loginScreen').hidden = true;
+  $('app').hidden = false;
+  if (!state) {
+    loadState();
+    renderNav();
+    initFormStatic();
+    bindEvents();
+  }
+  renderAll();
+  let v = 'dashboard'; try { v = sessionStorage.getItem('bsbio_view') || 'dashboard'; } catch (e) { /* ignore */ }
+  showView(v);
+  startupNotices.splice(0).forEach(n => typeof n === 'string' ? toast(n, 'error', 10000) : toast(n.msg, n.type, 8000));
+}
+function login(ev) {
+  ev.preventDefault();
+  const u = $('username').value.trim(), p = $('password').value;
+  if (USERS.some(x => x.username === u && x.password === p)) {
+    try { sessionStorage.setItem('bsbio_session', '1'); } catch (e) { /* ignore */ }
+    $('password').value = ''; $('loginError').textContent = '';
+    startApp();
+  } else {
+    $('loginError').textContent = 'Invalid username or password.';
+  }
+}
+function logout() {
+  try { sessionStorage.removeItem('bsbio_session'); } catch (e) { /* ignore */ }
+  $('app').hidden = true; $('loginScreen').hidden = false; $('username').focus();
+}
+function bindEvents() {
+  $('scheduleForm').addEventListener('submit', onSubmitSchedule);
+  $('fSemester').addEventListener('change', populateSubjectSelect);
+  $('fCategory').addEventListener('change', populateSubjectSelect);
+  $('fStart').addEventListener('change', () => {
+    const s = toMin($('fStart').value);
+    if (!isNaN(s) && (isNaN(toMin($('fEnd').value)) || toMin($('fEnd').value) <= s)) { const e = Math.min(s + 60, DAY_END); $('fEnd').value = toHHMM(e); }
+  });
+  $('cancelEditBtn').addEventListener('click', () => exitEdit());
+  $('clearFormBtn').addEventListener('click', () => { $('fDay').value = ''; $('fStart').value = ''; $('fEnd').value = ''; $('formMsg').hidden = true; });
+  document.querySelectorAll('[data-quickadd]').forEach(b => b.addEventListener('click', () => quickAdd(b.dataset.quickadd)));
+  $('dashTerm').addEventListener('change', renderDashboard);
+  ['ttFaculty', 'ttSemester', 'ttAY'].forEach(id => $(id).addEventListener('change', renderTimetable));
+  $('ttPrintBtn').addEventListener('click', () => { if (!$('ttFaculty').value || !$('ttAY').value) { toast('Choose a faculty member and an academic year first.', 'error'); return; } doPrint('sheet'); });
+  $('ttExcelBtn').addEventListener('click', () => exportFacultyExcel($('ttFaculty').value, $('ttSemester').value, $('ttAY').value));
+  $('masterPrintBtn').addEventListener('click', () => doPrint('master'));
+  const masterTag = () => { const f = readFilters('mf', MASTER_KEYS); return [f.semester, f.academicYear].filter(Boolean).map(slug).join('_') || 'all-terms'; };
+  const masterSub = () => { const f = readFilters('mf', MASTER_KEYS); return MASTER_KEYS.filter(k => f[k]).map(k => `${FILTER_LABELS[k]}: ${f[k]}`).join(' · ') || 'All terms'; };
+  $('masterExcelBtn').addEventListener('click', () => exportMasterExcel(masterList(), masterSub(), masterTag()));
+  $('masterCsvBtn').addEventListener('click', () => exportCSV(masterList(), `bs-biology-schedule_${masterTag()}.csv`));
+  const rp = () => [$('rpSemester').value, $('rpAY').value];
+  $('rpOneExcel').addEventListener('click', () => exportFacultyExcel($('rpFaculty').value, ...rp()));
+  $('rpOnePrint').addEventListener('click', () => printFaculty($('rpFaculty').value, ...rp()));
+  $('rpAllExcel').addEventListener('click', () => exportAllFacultyExcel(...rp(), $('rpIncludeEmpty').checked));
+  $('rpAllPrint').addEventListener('click', () => printAllFaculty(...rp(), $('rpIncludeEmpty').checked));
+  const rpList = () => { const [s, y] = rp(); return state.schedules.filter(e => e.semester === s && e.academicYear === y); };
+  $('rpMasterExcel').addEventListener('click', () => { const [s, y] = rp(); exportMasterExcel(rpList(), `${s}, A.Y. ${y}`, `${slug(s)}_${y}`); });
+  $('rpMasterCsv').addEventListener('click', () => { const [s, y] = rp(); exportCSV(rpList(), `bs-biology-schedule_${slug(s)}_${y}.csv`); });
+  $('settingsForm').addEventListener('submit', saveSettings);
+  $('logoFile').addEventListener('change', onLogoFile);
+  $('logoRemove').addEventListener('click', () => { if (state.settings.logo && confirm('Remove the uploaded logo?')) { state.settings.logo = null; commit('Logo removed; the placeholder will be printed.'); } });
+  $('backupBtn').addEventListener('click', backupJSON);
+  $('restoreFile').addEventListener('change', restoreJSON);
+  $('undoRestoreBtn').addEventListener('click', undoRestore);
+  $('resetBtn').addEventListener('click', resetDefaults);
+  $('logoutBtn').addEventListener('click', logout);
+  // Keep several open tabs in sync
+  window.addEventListener('storage', ev => { if (ev.key === STORE_KEY && ev.newValue) { try { state = normalizeState(JSON.parse(ev.newValue)).state; if (!editingId) renderAll(); } catch (e) { /* ignore */ } } });
+}
+function updateDateTime() {
+  $('dateTimeDisplay').textContent = new Date().toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+$('loginForm').addEventListener('submit', login);
+updateDateTime();
+setInterval(updateDateTime, 1000);
+let hasSession = false; try { hasSession = sessionStorage.getItem('bsbio_session') === '1'; } catch (e) { /* ignore */ }
+if (hasSession) startApp(); else $('username').focus();
+</script>
+</body>
+</html>
